@@ -123,7 +123,6 @@ schema from _some_ XSD files. It supports only simple, complex and sequence type
 and is experimental.
 
 ```scala
-import com.databricks.spark.xml.util.XSDToSchema
 import java.nio.file.Paths
 
 val schema = XSDToSchema.read(Paths.get("/path/to/your.xsd"))

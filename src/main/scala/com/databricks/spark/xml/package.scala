@@ -22,7 +22,7 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.types.{ArrayType, StructType}
 
 import com.databricks.spark.xml.parsers.StaxXmlParser
-import com.databricks.spark.xml.util.{InferSchema, XmlFile}
+import com.databricks.spark.xml.util.XmlFile
 
 package object xml {
   /**
@@ -58,24 +58,7 @@ package object xml {
     }
   }
 
-  /**
-   * Adds a method, `saveAsXmlFile`, to [[DataFrame]] that allows writing XML data.
-   * If compressionCodec is not null the resulting output will be compressed.
-   * Note that a codec entry in the parameters map will be ignored.
-   */
-  implicit class XmlSchemaRDD(dataFrame: DataFrame) {
-    @deprecated("Use write.format(\"xml\") or write.xml", "0.4.0")
-    def saveAsXmlFile(
-        path: String, parameters: scala.collection.Map[String, String] = Map(),
-        compressionCodec: Class[_ <: CompressionCodec] = null): Unit = {
-      val mutableParams = collection.mutable.Map(parameters.toSeq: _*)
-      val safeCodec = mutableParams.get("codec")
-        .orElse(Option(compressionCodec).map(_.getCanonicalName))
-        .orNull
-      mutableParams.put("codec", safeCodec)
-      XmlFile.saveAsXmlFile(dataFrame, path, mutableParams.toMap)
-    }
-  }
+
 
   /**
    * Adds a method, `xml`, to DataFrameReader that allows you to read avro files using
@@ -90,63 +73,6 @@ package object xml {
     }
   }
 
-  /**
-   * Adds a method, `xml`, to DataFrameWriter that allows you to write avro files using
-   * the DataFileWriter
-   */
-  implicit class XmlDataFrameWriter[T](writer: DataFrameWriter[T]) {
-    // Note that writing a XML file from [[DataFrame]] having a field [[ArrayType]] with
-    // its element as [[ArrayType]] would have an additional nested field for the element.
-    // For example, the [[DataFrame]] having a field below,
-    //
-    //   fieldA [[data1, data2]]
-    //
-    // would produce a XML file below.
-    //
-    //   <fieldA>
-    //       <item>data1</item>
-    //   </fieldA>
-    //   <fieldA>
-    //       <item>data2</item>
-    //   </fieldA>
-    //
-    // Namely, roundtrip in writing and reading can end up in different schema structure.
-    def xml: String => Unit = writer.format("com.databricks.spark.xml").save
-  }
-
-  /**
-   * Infers the schema of XML documents as strings.
-   *
-   * @param ds Dataset of XML strings
-   * @param options additional XML parsing options
-   * @return inferred schema for XML
-   */
-  @Experimental
-  def schema_of_xml(ds: Dataset[String], options: Map[String, String] = Map.empty): StructType =
-    InferSchema.infer(ds.rdd, XmlOptions(options))
-
-  /**
-   * Infers the schema of XML documents as strings.
-   *
-   * @param df one-column DataFrame of XML strings
-   * @param options additional XML parsing options
-   * @return inferred schema for XML
-   */
-  @Experimental
-  def schema_of_xml_df(df: DataFrame, options: Map[String, String] = Map.empty): StructType =
-    schema_of_xml(df.as[String](Encoders.STRING), options)
-
-  /**
-   * Infers the schema of XML documents when inputs are arrays of strings, each an XML doc.
-   *
-   * @param ds Dataset of XML strings
-   * @param options additional XML parsing options
-   * @return inferred schema for XML. Will be an ArrayType[StructType].
-   */
-  @Experimental
-  def schema_of_xml_array(ds: Dataset[Array[String]],
-                          options: Map[String, String] = Map.empty): ArrayType =
-    ArrayType(InferSchema.infer(ds.rdd.flatMap(a => a), XmlOptions(options)))
 
   /**
    * @param xml XML document to parse, as string

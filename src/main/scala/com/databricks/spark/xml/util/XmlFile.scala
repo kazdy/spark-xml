@@ -20,8 +20,6 @@ import java.nio.charset.Charset
 import javax.xml.stream.XMLOutputFactory
 
 import scala.collection.Map
-
-import com.databricks.spark.xml.parsers.StaxXmlGenerator
 import com.sun.xml.txw2.output.IndentingXMLStreamWriter
 import org.apache.hadoop.io.{Text, LongWritable}
 
@@ -33,6 +31,7 @@ import com.databricks.spark.xml.{XmlOptions, XmlInputFormat}
 private[xml] object XmlFile {
   val DEFAULT_INDENT = "    "
 
+  // Returns RDD which contains xml files as strings
   def withCharset(
       context: SparkContext,
       location: String,
@@ -49,101 +48,4 @@ private[xml] object XmlFile {
       classOf[Text]).map { case (_, text) => text.toString }
   }
 
-  /**
-   * Note that writing a XML file from [[DataFrame]] having a field
-   * [[org.apache.spark.sql.types.ArrayType]] with its element as nested array would have
-   * an additional nested field for the element. For example, the [[DataFrame]] having
-   * a field below,
-   *
-   *   fieldA Array(Array(data1, data2))
-   *
-   * would produce a XML file below.
-   *
-   * <fieldA>
-   *     <item>data1</item>
-   * </fieldA>
-   * <fieldA>
-   *     <item>data2</item>
-   * </fieldA>
-   *
-   * Namely, roundtrip in writing and reading can end up in different schema structure.
-   */
-  def saveAsXmlFile(
-      dataFrame: DataFrame,
-      path: String,
-      parameters: Map[String, String] = Map()): Unit = {
-    val options = XmlOptions(parameters.toMap)
-    val codecClass = CompressionCodecs.getCodecClass(options.codec)
-    val rowSchema = dataFrame.schema
-    val indent = XmlFile.DEFAULT_INDENT
-
-    // Allow a root tag to be like "rootTag foo='bar'"
-    // This is hacky; won't deal correctly with spaces in attributes, but want
-    // to make this at least work for simple cases without much complication
-    val rootTagTokens = options.rootTag.split(" ")
-    val rootElementName = rootTagTokens.head
-    val rootAttributes: Map[String, String] =
-      if (rootTagTokens.length > 1) {
-        rootTagTokens.tail.map { kv =>
-          val Array(k, v) = kv.split("=")
-          k -> v.replaceAll("['\"]", "")
-        }.toMap
-      } else {
-        Map.empty
-      }
-
-    val xmlRDD = dataFrame.rdd.mapPartitions { iter =>
-      val factory = XMLOutputFactory.newInstance()
-      val writer = new CharArrayWriter()
-      val xmlWriter = factory.createXMLStreamWriter(writer)
-      val indentingXmlWriter = new IndentingXMLStreamWriter(xmlWriter)
-      indentingXmlWriter.setIndentStep(indent)
-
-      new Iterator[String] {
-        var firstRow: Boolean = true
-        var lastRow: Boolean = true
-
-        override def hasNext: Boolean = iter.hasNext || firstRow || lastRow
-
-        override def next: String = {
-          if (iter.nonEmpty) {
-            if (firstRow) {
-              indentingXmlWriter.writeStartElement(rootElementName)
-              rootAttributes.foreach { case (k, v) =>
-                indentingXmlWriter.writeAttribute(k, v)
-              }
-              firstRow = false
-            }
-            val xml = {
-              StaxXmlGenerator(
-                rowSchema,
-                indentingXmlWriter,
-                options)(iter.next())
-              indentingXmlWriter.flush()
-              writer.toString
-            }
-            writer.reset()
-            xml
-          } else {
-            if (!firstRow) {
-              lastRow = false
-              indentingXmlWriter.writeEndElement()
-              indentingXmlWriter.close()
-              writer.toString
-            } else {
-              // This means the iterator was initially empty.
-              firstRow = false
-              lastRow = false
-              ""
-            }
-          }
-        }
-      }
-    }
-
-    codecClass match {
-      case null => xmlRDD.saveAsTextFile(path)
-      case codec => xmlRDD.saveAsTextFile(path, codec)
-    }
-  }
 }

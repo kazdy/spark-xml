@@ -23,7 +23,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.sources.{PrunedScan, InsertableRelation, BaseRelation}
 import org.apache.spark.sql.types._
-import com.databricks.spark.xml.util.{InferSchema, XmlFile}
+import com.databricks.spark.xml.util.XmlFile
 import com.databricks.spark.xml.parsers.StaxXmlParser
 
 case class XmlRelation protected[spark] (
@@ -32,16 +32,13 @@ case class XmlRelation protected[spark] (
     parameters: Map[String, String],
     userSchema: StructType = null)(@transient val sqlContext: SQLContext)
   extends BaseRelation
-  with InsertableRelation
   with PrunedScan {
 
   private val options = XmlOptions(parameters)
 
   override val schema: StructType = {
     Option(userSchema).getOrElse {
-      InferSchema.infer(
-        baseRDD(),
-        options)
+      throw new RuntimeException("Schema must be provided, schema interference is not supported")
     }
   }
 
@@ -54,29 +51,5 @@ case class XmlRelation protected[spark] (
       options)
   }
 
-  // The function below was borrowed from JSONRelation
-  override def insert(data: DataFrame, overwrite: Boolean): Unit = {
-    val filesystemPath = location match {
-      case Some(p) => new Path(p)
-      case None =>
-        throw new IOException(s"Cannot INSERT into table with no path defined")
-    }
 
-    val fs = filesystemPath.getFileSystem(sqlContext.sparkContext.hadoopConfiguration)
-
-    if (overwrite) {
-      try {
-        fs.delete(filesystemPath, true)
-      } catch {
-        case e: IOException =>
-          throw new IOException(
-            s"Unable to clear output directory ${filesystemPath.toString} prior"
-              + s" to INSERT OVERWRITE a XML table:\n${e.toString}")
-      }
-      // Write the data. We assume that schema isn't changed, and we won't update it.
-      XmlFile.saveAsXmlFile(data, filesystemPath.toString, parameters)
-    } else {
-      throw new IllegalArgumentException("XML tables only support INSERT OVERWRITE for now.")
-    }
-  }
 }

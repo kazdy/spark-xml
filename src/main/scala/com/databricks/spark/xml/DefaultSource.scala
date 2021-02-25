@@ -29,7 +29,6 @@ import com.databricks.spark.xml.util.XmlFile
 class DefaultSource
   extends RelationProvider
   with SchemaRelationProvider
-  with CreatableRelationProvider
   with DataSourceRegister {
 
   /**
@@ -60,6 +59,7 @@ class DefaultSource
       sqlContext: SQLContext,
       parameters: Map[String, String],
       schema: StructType): XmlRelation = {
+
     val path = checkPath(parameters)
     // We need the `charset` and `rowTag` before creating the relation.
     val (charset, rowTag) = {
@@ -74,33 +74,4 @@ class DefaultSource
       schema)(sqlContext)
   }
 
-  override def createRelation(
-      sqlContext: SQLContext,
-      mode: SaveMode,
-      parameters: Map[String, String],
-      data: DataFrame): BaseRelation = {
-    val path = checkPath(parameters)
-    val filesystemPath = new Path(path)
-    val fs = filesystemPath.getFileSystem(sqlContext.sparkContext.hadoopConfiguration)
-    val doSave = if (fs.exists(filesystemPath)) {
-      mode match {
-        case SaveMode.Append =>
-          throw new IllegalArgumentException(
-            s"Append mode is not supported by ${this.getClass.getCanonicalName}")
-        case SaveMode.Overwrite =>
-          fs.delete(filesystemPath, true)
-          true
-        case SaveMode.ErrorIfExists =>
-          throw new IllegalArgumentException(s"path $path already exists.")
-        case SaveMode.Ignore => false
-      }
-    } else {
-      true
-    }
-    if (doSave) {
-      // Only save data when the save mode is not ignore.
-      XmlFile.saveAsXmlFile(data, filesystemPath.toString, parameters)
-    }
-    createRelation(sqlContext, parameters, data.schema)
-  }
 }
