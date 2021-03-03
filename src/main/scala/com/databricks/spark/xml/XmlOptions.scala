@@ -69,8 +69,6 @@ private[xml] class XmlOptions(
       .filterKeys(_.matches("column\\.xpath\\..*"))
       .map(kv => XmlColumn(kv._1.replaceAll("column.xpath.", ""), kv._2))
       .toList
-
-
   }
 
   def validateSchemaAndOptions(): Unit = {

@@ -47,8 +47,7 @@ import scala.collection.JavaConversions._
 private[xml] object XmlParser extends Serializable {
   private val logger = LoggerFactory.getLogger(XmlParser.getClass)
 
-  private val processor: Processor = new Processor(false)
-  private val builder: DocumentBuilder = processor.newDocumentBuilder()
+  private val builder: DocumentBuilder = XmlProcessor.builder
 
   def toInputStream(xml: String): InputStream = {
     new ByteArrayInputStream(xml.getBytes())
@@ -69,7 +68,7 @@ private[xml] object XmlParser extends Serializable {
     xdmNode
   }
 
-  val XQCompiler = processor.newXQueryCompiler()
+  val XQCompiler = XmlProcessor.xqueryCompiler
 
 
   // TODO: change parse implementation to return XMLTABLE as RDD[Row]
