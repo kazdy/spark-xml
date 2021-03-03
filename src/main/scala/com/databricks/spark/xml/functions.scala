@@ -16,6 +16,7 @@
 
 package com.databricks.spark.xml
 
+import org.apache.arrow.vector.types.pojo.ArrowType.Struct
 import org.apache.spark.annotation.Experimental
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.parser.CatalystSqlParser
@@ -37,7 +38,7 @@ object functions {
   @Experimental
   def from_xml(e: Column, schema: DataType, options: Map[String, String] = Map.empty): Column = {
     val expr = CatalystSqlParser.parseExpression(e.toString())
-    new Column(XmlDataToCatalyst(expr, schema, XmlOptions(options)))
+    new Column(XmlDataToCatalyst(expr, schema, XmlOptions(options, userSchema = null)))
   }
 
 }

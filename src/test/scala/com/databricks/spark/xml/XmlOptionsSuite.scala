@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.databricks.spark.xml.util
-
-import java.nio.charset.{StandardCharsets, UnsupportedCharsetException}
+package com.databricks.spark.xml
 
 import org.apache.spark.SparkContext
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
 
-final class XmlFileSuite extends AnyFunSuite with BeforeAndAfterAll {
+import java.nio.charset.{StandardCharsets, UnsupportedCharsetException}
+
+final class XmlOptionsSuite extends AnyFunSuite with BeforeAndAfterAll {
 
   private val booksFile = "src/test/resources/books.xml"
   private val booksUnicodeInTagNameFile = "src/test/resources/books-unicode-in-tag-name.xml"
@@ -38,7 +38,7 @@ final class XmlFileSuite extends AnyFunSuite with BeforeAndAfterAll {
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    sparkContext = new SparkContext("local[2]", "XmlOptionsSuite")
+    sparkContext = new SparkContext("local[2]", "TextFileSuite")
   }
 
   override def afterAll(): Unit = {
@@ -50,28 +50,7 @@ final class XmlFileSuite extends AnyFunSuite with BeforeAndAfterAll {
     }
   }
 
-  test("read utf-8 encoded file") {
-    val baseRDD = XmlFile.withCharset(sparkContext, booksFile, utf8, rowTag = booksFileTag)
-    assert(baseRDD.count() === numBooks)
-  }
 
-  test("read file with unicode chars in row tag name") {
-    val baseRDD = XmlFile.withCharset(
-      sparkContext, booksUnicodeInTagNameFile, utf8, rowTag = booksUnicodeFileTag)
-    assert(baseRDD.count() === numBooksUnicodeInTagName)
-  }
 
-  test("read utf-8 encoded file with empty tag") {
-    val baseRDD = XmlFile.withCharset(sparkContext, fiasHouse, utf8, rowTag = fiasRowTag)
-    assert(baseRDD.count() == numHouses)
-    baseRDD.collect().foreach(x => assert(x.contains("/>")))
-  }
-
-  test("unsupported charset") {
-    val exception = intercept[UnsupportedCharsetException] {
-      XmlFile.withCharset(sparkContext, booksFile, "frylock", rowTag = booksFileTag).count()
-    }
-    assert(exception.getMessage.contains("frylock"))
-  }
 
 }

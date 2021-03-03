@@ -49,8 +49,7 @@ private[xml] object TypeCast {
       options: XmlOptions,
       nullable: Boolean = true): Any = {
     if (datum == options.nullValue &&
-      nullable ||
-      (options.treatEmptyValuesAsNulls && datum == "")){
+      nullable) {
       null
     } else {
       castType match {
@@ -135,7 +134,7 @@ private[xml] object TypeCast {
       datum: String,
       dataType: DataType,
       options: XmlOptions): Any = {
-    val value = if (datum != null && options.ignoreSurroundingSpaces) {
+    val value = if (datum != null) {
       datum.trim()
     } else {
       datum

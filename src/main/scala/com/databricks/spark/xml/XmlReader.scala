@@ -19,7 +19,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Dataset, SQLContext, SparkSession}
 import org.apache.spark.sql.types.StructType
 import com.databricks.spark.xml.util.XmlFile
-import com.databricks.spark.xml.util.FailFastMode
+
 
 /**
  * A collection of static functions for working with XML files in Spark SQL
@@ -58,15 +58,6 @@ class XmlReader extends Serializable {
     this
   }
 
-  @deprecated("Use withParseMode(\"FAILFAST\") instead", "0.10.0")
-  def withFailFast(failFast: Boolean): XmlReader = {
-    if (failFast) {
-      parameters += ("mode" -> FailFastMode.name)
-    } else {
-      parameters -= "mode"
-    }
-    this
-  }
 
   def withParseMode(mode: String): XmlReader = {
     parameters += ("mode" -> mode)
@@ -111,7 +102,7 @@ class XmlReader extends Serializable {
   def xmlFile(spark: SparkSession, path: String): DataFrame = {
     // We need the `charset` and `rowTag` before creating the relation.
     val (charset, rowTag) = {
-      val options = XmlOptions(parameters.toMap)
+      val options = XmlOptions(parameters.toMap, schema)
       (options.charset, options.rowTag)
     }
     val relation = XmlRelation(
@@ -150,7 +141,7 @@ class XmlReader extends Serializable {
   def xmlFile(sqlContext: SQLContext, path: String): DataFrame = {
     // We need the `charset` and `rowTag` before creating the relation.
     val (charset, rowTag) = {
-      val options = XmlOptions(parameters.toMap)
+      val options = XmlOptions(parameters.toMap, schema)
       (options.charset, options.rowTag)
     }
     val relation = XmlRelation(

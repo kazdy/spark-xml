@@ -23,7 +23,7 @@ import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
-import com.databricks.spark.xml.parsers.StaxXmlParser
+import com.databricks.spark.xml.processor.XmlParser
 
 case class XmlDataToCatalyst(
     child: Expression,
@@ -41,15 +41,15 @@ case class XmlDataToCatalyst(
 
   override def nullSafeEval(xml: Any): Any = xml match {
     case string: UTF8String =>
-      CatalystTypeConverters.convertToCatalyst(
-        StaxXmlParser.parseColumn(string.toString, rowSchema, options))
+//      CatalystTypeConverters.convertToCatalyst(
+//        XmlParser.parseColumn(string.toString, rowSchema, options))
     case string: String =>
-      StaxXmlParser.parseColumn(string, rowSchema, options)
+//      XmlParser.parseColumn(string, rowSchema, options)
     case arr: GenericArrayData =>
-      CatalystTypeConverters.convertToCatalyst(
-        arr.array.map(s => StaxXmlParser.parseColumn(s.toString, rowSchema, options)))
+//      CatalystTypeConverters.convertToCatalyst(
+//        arr.array.map(s => XmlParser.parseColumn(s.toString, rowSchema, options)))
     case arr: Array[_] =>
-      arr.map(s => StaxXmlParser.parseColumn(s.toString, rowSchema, options))
+//      arr.map(s => XmlParser.parseColumn(s.toString, rowSchema, options))
     case _ => null
   }
 

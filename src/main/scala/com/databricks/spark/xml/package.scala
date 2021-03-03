@@ -21,42 +21,14 @@ import org.apache.spark.annotation.Experimental
 import org.apache.spark.sql._
 import org.apache.spark.sql.types.{ArrayType, StructType}
 
-import com.databricks.spark.xml.parsers.StaxXmlParser
+import com.databricks.spark.xml.processor.XmlParser
 import com.databricks.spark.xml.util.XmlFile
 
 package object xml {
   /**
    * Adds a method, `xmlFile`, to [[SQLContext]] that allows reading XML data.
    */
-  implicit class XmlContext(sqlContext: SQLContext) extends Serializable {
-    @deprecated("Use read.format(\"xml\") or read.xml", "0.4.0")
-    def xmlFile(
-        filePath: String,
-        rowTag: String = XmlOptions.DEFAULT_ROW_TAG,
-        samplingRatio: Double = 1.0,
-        excludeAttribute: Boolean = false,
-        treatEmptyValuesAsNulls: Boolean = false,
-        failFast: Boolean = false,
-        attributePrefix: String = XmlOptions.DEFAULT_ATTRIBUTE_PREFIX,
-        valueTag: String = XmlOptions.DEFAULT_VALUE_TAG,
-        charset: String = XmlOptions.DEFAULT_CHARSET): DataFrame = {
 
-      val parameters = Map(
-        "rowTag" -> rowTag,
-        "samplingRatio" -> samplingRatio.toString,
-        "excludeAttribute" -> excludeAttribute.toString,
-        "treatEmptyValuesAsNulls" -> treatEmptyValuesAsNulls.toString,
-        "failFast" -> failFast.toString,
-        "attributePrefix" -> attributePrefix,
-        "valueTag" -> valueTag,
-        "charset" -> charset)
-      val xmlRelation = XmlRelation(
-        () => XmlFile.withCharset(sqlContext.sparkContext, filePath, charset, rowTag),
-        location = Some(filePath),
-        parameters = parameters)(sqlContext)
-      sqlContext.baseRelationToDataFrame(xmlRelation)
-    }
-  }
 
 
 
@@ -82,8 +54,9 @@ package object xml {
    */
   @Experimental
   def from_xml_string(xml: String, schema: StructType,
-                      options: Map[String, String] = Map.empty): Row = {
-    StaxXmlParser.parseColumn(xml, schema, XmlOptions(options))
-  }
+                      options: Map[String, String] = Map.empty): Row = ???
+  //{
+    //XmlParser.parseColumn(xml, schema, XmlOptions(options))
+  //}
 
 }

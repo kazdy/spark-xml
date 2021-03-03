@@ -63,7 +63,7 @@ class DefaultSource
     val path = checkPath(parameters)
     // We need the `charset` and `rowTag` before creating the relation.
     val (charset, rowTag) = {
-      val options = XmlOptions(parameters)
+      val options = XmlOptions(parameters, schema)
       (options.charset, options.rowTag)
     }
 
