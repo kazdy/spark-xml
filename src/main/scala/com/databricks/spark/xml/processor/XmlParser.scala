@@ -31,6 +31,7 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.TypeCast._
 import com.databricks.spark.xml.XmlOptions
+import com.databricks.spark.xml.processor.XmlProcessor.buildXdmTree
 import com.databricks.spark.xml.util._
 import net.sf.saxon.s9api.{DocumentBuilder, Processor, XdmItem, XdmNode, XdmSequenceIterator, XdmValue}
 import org.apache.spark.{Partition, TaskContext}
@@ -49,24 +50,6 @@ private[xml] object XmlParser extends Serializable {
 
   private val builder: DocumentBuilder = XmlProcessor.builder
 
-  def toInputStream(xml: String): InputStream = {
-    new ByteArrayInputStream(xml.getBytes())
-  }
-
-  def toSAXSource(stream: InputStream): SAXSource = {
-    new SAXSource(new InputSource(stream))
-  }
-
-  def buildSource(source: SAXSource): XdmNode = {
-    builder.build(source)
-  }
-
-  def buildXdmTree(xml: String): XdmNode = {
-    val inputStream = toInputStream(xml)
-    val SAXSource = toSAXSource(inputStream)
-    val xdmNode = buildSource(SAXSource)
-    xdmNode
-  }
 
   val XQCompiler = XmlProcessor.xqueryCompiler
 
@@ -95,8 +78,6 @@ private[xml] object XmlParser extends Serializable {
       }
 
       processedRows.toIterator
-
-
 
       }
 

@@ -4,7 +4,7 @@ import com.databricks.spark.xml.processor.XmlProcessor.xpathCompiler
 import com.databricks.spark.xml.table.XmlNamespace
 import net.sf.saxon.s9api.{XPathCompiler, XPathExecutable, XPathSelector, XdmItem, XdmValue}
 
-class XPath {
+object XPathHelper {
 
   private val _compiler: XPathCompiler = xpathCompiler
 
@@ -15,7 +15,8 @@ class XPath {
     _compiler.compile(query)
   }
 
-  def compile(query: String, namespaces: List[XmlNamespace]): XPathExecutable = {
+  def compile(query: String, namespaces: Array[XmlNamespace]): XPathExecutable = {
+    // if namespaces is empty, no namespace will be declared
     namespaces.foreach(ns => _compiler.declareNamespace(ns.prefix, ns.uri))
     _compiler.compile(query)
   }
@@ -29,4 +30,5 @@ class XPath {
   def execute(queryEvaluator: XPathSelector): XdmValue = {
     queryEvaluator.evaluate()
   }
+
 }

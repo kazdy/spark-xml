@@ -50,7 +50,7 @@ private[xml] class XmlOptions(
   val xmlColumnPaths = getXmlColumnPaths()
 
 
-  def getNamespaces(): List[XmlNamespace] = {
+  def getNamespaces(): Array[XmlNamespace] = {
     parameters
       .filterKeys(_.matches("namespace.*"))
       .map(kv => {
@@ -61,14 +61,14 @@ private[xml] class XmlOptions(
         },
           kv._2)
       })
-      .toList
+      .toArray
   }
 
-  def getXmlColumnPaths(): List[XmlColumn] = {
+  def getXmlColumnPaths(): Array[XmlColumn] = {
     parameters
       .filterKeys(_.matches("column\\.xpath\\..*"))
       .map(kv => XmlColumn(kv._1.replaceAll("column.xpath.", ""), kv._2))
-      .toList
+      .toArray
   }
 
   def validateSchemaAndOptions(): Unit = {
@@ -80,7 +80,7 @@ private[xml] class XmlOptions(
         "Number of columns in schema is not equal to number of columns in options")
     } else if (schemaOptionsDiff.size > 0){
       throw new UnsupportedOperationException(
-        s"""Schema and column names in options, check: ${schemaOptionsDiff.mkString(", ")}"""
+        s"""Difference in schema and column names, check: ${schemaOptionsDiff.mkString(", ")}"""
       )
     }
   }
