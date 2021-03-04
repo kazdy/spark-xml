@@ -26,6 +26,7 @@ object XQueryHelper {
       queryEvaluator
   }
 
+  // TODO: method execute not needed ?
   def execute(queryEvaluator: XQueryEvaluator): XdmValue = {
     queryEvaluator.evaluate()
   }
