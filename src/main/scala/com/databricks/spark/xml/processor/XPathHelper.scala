@@ -4,7 +4,7 @@ import com.databricks.spark.xml.processor.XmlProcessor.xpathCompiler
 import com.databricks.spark.xml.table.XmlNamespace
 import net.sf.saxon.s9api.{XPathCompiler, XPathExecutable, XPathSelector, XdmItem, XdmValue}
 
-object XPathHelper {
+object XPathHelper extends Serializable {
 
   private val _compiler: XPathCompiler = xpathCompiler
 

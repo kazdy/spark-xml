@@ -23,6 +23,7 @@ import org.apache.spark.sql.sources.{BaseRelation, InsertableRelation, PrunedSca
 import org.apache.spark.sql.types._
 import com.databricks.spark.xml.util.XmlFile
 import com.databricks.spark.xml.processor.XmlParser
+import com.databricks.spark.xml.table.XmlTable
 import org.apache.spark.{Partition, TaskContext}
 
 case class XmlRelation protected[spark] (
@@ -47,8 +48,15 @@ case class XmlRelation protected[spark] (
     val requiredFields = requiredColumns.map(schema(_))
     val requestedSchema = StructType(requiredFields)
 
+    val xmlTable = new XmlTable(
+      options.rootXQuery.get,
+      options.namespaces,
+      options.xmlColumnPaths,
+      requestedSchema )
+
     XmlParser.parse(
       baseRDD(),
+      xmlTable,
       requestedSchema,
       options)
   }

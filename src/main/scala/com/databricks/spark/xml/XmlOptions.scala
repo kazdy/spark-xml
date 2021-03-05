@@ -44,9 +44,9 @@ private[xml] class XmlOptions(
   val treatEmptyValuesAsNulls = parameters.getOrElse("treatEmptyValuesAsNulls", "true")
   val rootXQuery = parameters.get("rootXQuery")
 
-  validateSchemaAndOptions()
-
-  val namespaces = getNamespaces()
+//  validateSchemaAndOptions()
+// TODO: fixme empty array
+  val namespaces = Array.empty[XmlNamespace]  // getNamespaces()
   val xmlColumnPaths = getXmlColumnPaths()
 
 

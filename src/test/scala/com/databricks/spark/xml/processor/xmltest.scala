@@ -12,7 +12,7 @@ object xmltest extends App {
     println(spark.version)
 
   val schema = StructType(
-      StructField("id", StringType) ::
+      StructField("age", StringType) ::
       StructField("name", StringType) :: Nil
   )
 
@@ -21,8 +21,9 @@ object xmltest extends App {
       spark.read
         .format("xml")
         .schema(schema)
-        .option("column.xpath.id", "some/example/xpath")
-        .option("column.xpath.name", "some/example/xpath2")
+        .option("rootXQuery", "./people/person")
+        .option("column.xpath.age", "./age")
+        .option("column.xpath.name", "./name")
         .option("rowTag", "people")
         .load("/home/dan/IdeaProjects/spark-xml/src/test/resources/ages.xml")
 
