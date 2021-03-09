@@ -34,19 +34,19 @@ private[xml] class XmlOptions(
   def this() = this(Map.empty, null)
 
   val charset = parameters.getOrElse("charset", XmlOptions.DEFAULT_CHARSET)
-  val codec = parameters.get("compression").orElse(parameters.get("codec")).orNull
+//  val codec = parameters.get("compression").orElse(parameters.get("codec")).orNull
   val rowTag = parameters.getOrElse("rowTag", XmlOptions.DEFAULT_ROW_TAG)
     require(rowTag.nonEmpty, "'rowTag' option should not be empty string.")
   val nullValue = parameters.getOrElse("nullValue", XmlOptions.DEFAULT_NULL_VALUE)
-  val ignoreNamespace = parameters.get("ignoreNamespace").map(_.toBoolean).getOrElse(false)
+//  val ignoreNamespace = parameters.get("ignoreNamespace").map(_.toBoolean).getOrElse(false)
   val timestampFormat = parameters.get("timestampFormat")
   val dateFormat = parameters.get("dateFormat")
-  val treatEmptyValuesAsNulls = parameters.getOrElse("treatEmptyValuesAsNulls", "true")
+//  val treatEmptyValuesAsNulls = parameters.getOrElse("treatEmptyValuesAsNulls", "true")
   val rootXQuery = parameters.get("rootXQuery")
 
 //  validateSchemaAndOptions()
 // TODO: fixme empty array
-  val namespaces = Array.empty[XmlNamespace]  // getNamespaces()
+  val namespaces = getNamespaces() // Array.empty[XmlNamespace]
   val xmlColumnPaths = getXmlColumnPaths()
 
 

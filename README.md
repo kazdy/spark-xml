@@ -136,10 +136,11 @@ Although primarily used to convert (portions of) large XML documents into a `Dat
 it as a new column with parsed results as a struct.
 
 ```scala
-import com.databricks.spark.xml.functions.from_xml
+import.from_xml
 import com.databricks.spark.xml.schema_of_xml
 import spark.implicits._
-val df = ... /// DataFrame with XML in column 'payload' 
+
+val df =... /// DataFrame with XML in column 'payload' 
 val payloadSchema = schema_of_xml(df.select("payload").as[String])
 val parsed = df.withColumn("parsed", from_xml($"payload", payloadSchema))
 ```

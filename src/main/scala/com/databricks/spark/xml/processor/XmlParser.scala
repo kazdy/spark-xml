@@ -15,32 +15,15 @@
  */
 package com.databricks.spark.xml.processor
 
-import java.io.{ByteArrayInputStream, StringReader}
-import javax.xml.stream.XMLEventReader
-import javax.xml.stream.events.{Attribute, Characters, EndElement, StartElement, XMLEvent}
-import javax.xml.transform.stream.StreamSource
-import javax.xml.validation.Schema
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.JavaConverters._
-import scala.collection.Iterator._
-import scala.util.control.NonFatal
-import scala.util.Try
-import org.slf4j.LoggerFactory
+import com.databricks.spark.xml.XmlOptions
+import com.databricks.spark.xml.table.{XmlCompiledColumn, XmlTable}
+import com.databricks.spark.xml.util.TypeCast.convertTo
+import net.sf.saxon.s9api.{XdmItem, XdmNode, XdmSequenceIterator}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.types._
-import com.databricks.spark.xml.util.TypeCast._
-import com.databricks.spark.xml.XmlOptions
-import com.databricks.spark.xml.processor.XmlProcessor.buildXdmTree
-import com.databricks.spark.xml.table.{XmlColumn, XmlTable}
-import com.databricks.spark.xml.util._
-import net.sf.saxon.s9api.{DocumentBuilder, Processor, XPathExecutable, XdmItem, XdmNode, XdmSequenceIterator, XdmValue}
-import org.apache.spark.{Partition, TaskContext}
+import org.slf4j.LoggerFactory
 
-import java.io.{ByteArrayInputStream, InputStream}
-import javax.xml.transform.sax.SAXSource
-import org.xml.sax.InputSource
-
+import java.math.BigDecimal
 import scala.collection.JavaConversions._
 
 /**
@@ -53,63 +36,57 @@ private[xml] object XmlParser extends Serializable {
   def parse(
              xml: RDD[String],
              xmlTable: XmlTable,
-             schema: StructType,
              options: XmlOptions): RDD[Row] = {
-    xml.mapPartitions(iter => iter.flatMap(xml => parseXmlTable(xml, xmlTable)) )
+    xml.mapPartitions(iter => iter.flatMap(xml => parseXmlTable(xml, xmlTable, options)) )
   }
 
-  def parseXmlTable(xml: String, xmlTable: XmlTable): Iterator[Row] = {
+  private def parseXmlTable(xml: String, xmlTable: XmlTable, options: XmlOptions): Iterator[Row] = {
     val xmlTree = XmlProcessor.buildXdmTree(xml)
-    processXmlTable(xmlTable, xmlTree)
+    processXmlTable(xmlTable, xmlTree, options)
   }
-
   // main logic for XmlTable processing
   // must return Iterator[Row] for spark, can be changed to Array[T] for any other use
-  def processXmlTable(xmlTable: XmlTable, xmlTree: XdmNode): Iterator[Row] = {
-    case class Column(name: String, xpath: XPathExecutable)
+  private def processXmlTable(
+                               xmlTable: XmlTable,
+                               xmlTree: XdmNode,
+                               options: XmlOptions): Iterator[Row] = {
     // val rootXQuery: compiled XQuery expression
-    val rootXQuery = XQueryHelper.compile(xmlTable.xmlRootXQuery, xmlTable.xmlNamespaces)
-
-    def compileRequestedXPaths(
-                                        requestedSchema: StructType,
-                                        xmlColumns: Array[XmlColumn]
-                                      ): Array[Column] = {
-      val compiledXpaths: Array[Column] = for {
-        fieldName <- requestedSchema.fieldNames // compile only what's needed
-        column <- xmlColumns
-        if fieldName == column.name
-      } yield (Column(fieldName, XPathHelper.compile(column.xpath, xmlTable.xmlNamespaces)))
-
-      compiledXpaths
-    }
-
+    val rootXQuery = xmlTable.compileRootXQuery()
     // list of requested columns with compiled XPath queries
     // contextItem (rootXQuery result) should be specified just before execution
-    val columns: Array[Column] = compileRequestedXPaths(xmlTable.requestedSchema, xmlTable.xmlColumns)
-
+    val columns: Array[XmlCompiledColumn] = xmlTable.compileRequestedXPaths()
     // 1. execute XQuery to establish rows
     val xqueryResult = XQueryHelper
       .prepare(rootXQuery, xmlTree)
       .iterator()
-    // 2. for every row from XQuery execute XPath (for all columns)
-    // with XQuery returned row as a context item
+    // return Iterator of Row
+    processRow(xqueryResult, columns, options)
+  }
+  private def processRow(xqueryResult: XdmSequenceIterator[XdmItem],
+                         columns: Array[XmlCompiledColumn],
+                         options: XmlOptions): Iterator[Row] = {
     val resultIterator = xqueryResult.map(contextRow => {
       val rowArray: Array[Any] = columns.map(
         column => {
           // process every column, exec xpath with context item
           val xpathResult = XPathHelper.prepare(column.xpath, contextRow).evaluate()
           // return null if empty, return string value if not empty
-          if(xpathResult.isEmpty) "null" else xpathResult.getUnderlyingValue.getStringValue
+          if (xpathResult.isEmpty){
+            null
+          } else if (xpathResult.size() <= 1) {
+            val result = xpathResult.getUnderlyingValue.getStringValue
+            convertTo(result, column.dataType, options)
+            // convertToDataType(result, column.dataType)
+          } else {
+            throw new RuntimeException(
+              s"Xpath for column: ${column.name} returned more than 1 row per context row")
+          }
         }
       )
       Row.fromSeq(rowArray)
     })
-
     resultIterator
-
   }
-      // Array(Row.fromSeq(Seq("2", "nie daniel"))).toIterator
-
 }
 
 

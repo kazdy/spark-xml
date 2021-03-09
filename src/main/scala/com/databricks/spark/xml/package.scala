@@ -25,17 +25,7 @@ import com.databricks.spark.xml.processor.XmlParser
 import com.databricks.spark.xml.util.XmlFile
 
 package object xml {
-  /**
-   * Adds a method, `xmlFile`, to [[SQLContext]] that allows reading XML data.
-   */
 
-
-
-
-  /**
-   * Adds a method, `xml`, to DataFrameReader that allows you to read avro files using
-   * the DataFileReader
-   */
   implicit class XmlDataFrameReader(reader: DataFrameReader) {
     def xml: String => DataFrame = reader.format("com.databricks.spark.xml").load
 
@@ -44,19 +34,4 @@ package object xml {
       new XmlReader().xmlDataset(spark, xmlDataset)
     }
   }
-
-
-  /**
-   * @param xml XML document to parse, as string
-   * @param schema the schema to use when parsing the XML string
-   * @param options key-value pairs that correspond to those supported by [[XmlOptions]]
-   * @return [[Row]] representing the parsed XML structure
-   */
-  @Experimental
-  def from_xml_string(xml: String, schema: StructType,
-                      options: Map[String, String] = Map.empty): Row = ???
-  //{
-    //XmlParser.parseColumn(xml, schema, XmlOptions(options))
-  //}
-
 }

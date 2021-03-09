@@ -57,7 +57,6 @@ case class XmlRelation protected[spark] (
     XmlParser.parse(
       baseRDD(),
       xmlTable,
-      requestedSchema,
       options)
   }
 }
