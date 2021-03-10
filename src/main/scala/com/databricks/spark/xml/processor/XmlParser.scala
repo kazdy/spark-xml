@@ -17,13 +17,12 @@ package com.databricks.spark.xml.processor
 
 import com.databricks.spark.xml.XmlOptions
 import com.databricks.spark.xml.table.{XmlCompiledColumn, XmlTable}
-import com.databricks.spark.xml.util.TypeCast.convertTo
+import com.databricks.spark.xml.util.TypeCast.{castTo, convertTo}
 import net.sf.saxon.s9api.{XdmItem, XdmNode, XdmSequenceIterator}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.slf4j.LoggerFactory
 
-import java.math.BigDecimal
 import scala.collection.JavaConversions._
 
 /**
@@ -75,11 +74,10 @@ private[xml] object XmlParser extends Serializable {
             null
           } else if (xpathResult.size() <= 1) {
             val result = xpathResult.getUnderlyingValue.getStringValue
-            convertTo(result, column.dataType, options)
-            // convertToDataType(result, column.dataType)
+            castTo(result, column.dataType, options)
           } else {
             throw new RuntimeException(
-              s"Xpath for column: ${column.name} returned more than 1 row per context row")
+              s"XPath for column: ${column.name} returned more than 1 row per context row")
           }
         }
       )

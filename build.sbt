@@ -54,21 +54,6 @@ pomExtra :=
     </developer>
   </developers>
 
-publishTo := {
-  val nexus = "https://oss.sonatype.org/"
-  if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
-  else Some("releases" at nexus + "service/local/staging/deploy/maven2")
-}
-
-credentials += Credentials(
-  "Sonatype Nexus Repository Manager",
-  "oss.sonatype.org",
-  sys.env.getOrElse("USERNAME", ""),
-  sys.env.getOrElse("PASSWORD", ""))
-
-resolvers +=
-  "GCS Maven Central mirror" at "https://maven-central.storage-download.googleapis.com/maven2/"
-
 parallelExecution in Test := false
 
 // Skip tests during assembly

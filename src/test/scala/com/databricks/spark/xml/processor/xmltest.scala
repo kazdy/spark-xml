@@ -14,23 +14,23 @@ object xmltest extends App {
   spark.sparkContext.setLogLevel("ALL")
 
   val schema = StructType(
-      StructField("age", StringType) ::
-      StructField("name", IntegerType) :: Nil
+      StructField("id", StringType) ::
+      StructField("title", StringType) ::
+        StructField("price", DoubleType) :: Nil
   )
 
-  val paths = List("/home/dan/IdeaProjects/spark-xml/src/test/resources/ages.xml",
-    "/home/dan/IdeaProjects/spark-xml/src/test/resources/multipleFiles/*.xml")
-
-    val ids = {
+    val books = {
       spark.read
         .format("xml")
         .schema(schema)
-        .option("rootXQuery", "./Houses/House")
-        .option("column.xpath.age", "./@COUNTER")
-        .option("column.xpath.name", "./@POSTALCODE")
-        .option("rowTag", "Houses")
-        .load("/home/dan/IdeaProjects/spark-xml/src/test/resources/fias_house.large.xml")
+        .option("rootXQuery", "./catalog/book")
+        .option("column.xpath.id", "./@id")
+        .option("column.xpath.title", "./title")
+        .option("column.xpath.price", "./price")
+        .option("rowTag", "catalog")
+        .load("/home/dan/IdeaProjects/spark-xml/src/test/resources/books.xml")
 
     }
-  ids.select("age", "name").orderBy("age").show(10)
+
+    books.show
 }

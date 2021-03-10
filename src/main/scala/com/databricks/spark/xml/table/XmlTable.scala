@@ -12,17 +12,17 @@ class XmlTable  (
                 val requestedSchema: StructType
               ) extends Serializable {
 
-
   def compileRequestedXPaths(): Array[XmlCompiledColumn] = {
-    val compiledXpaths: Array[XmlCompiledColumn] = for {
-      fieldName <- requestedSchema.fieldNames // compile only what's needed
-      fieldType <- requestedSchema.map(x => x.dataType) // need to know datatype for conversions
+
+    val compiledXpaths: Seq[XmlCompiledColumn] = for {
+      requestedField <- requestedSchema // compile only what's needed
       column <- xmlColumns
-      if fieldName == column.name
-    } yield XmlCompiledColumn(fieldName,
+      if requestedField.name == column.name
+    } yield XmlCompiledColumn(requestedField.name,
       XPathHelper.compile(column.xpath, xmlNamespaces),
-      fieldType)
-    compiledXpaths
+      requestedField.dataType)
+
+    compiledXpaths.toArray
   }
 
   def compileRootXQuery(): XQueryExecutable = {
