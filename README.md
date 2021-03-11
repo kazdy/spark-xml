@@ -85,7 +85,6 @@ $ wget https://github.com/databricks/spark-xml/raw/master/src/test/resources/boo
 
 ```scala
 import org.apache.spark.sql.SparkSession
-import com.databricks.spark.xml._
 import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 
 
@@ -96,27 +95,27 @@ val spark = SparkSession
         .getOrCreate()
 
 val schema = StructType(
-      StructField("id", StringType) ::
-      StructField("title", StringType) ::
-        StructField("price", DoubleType) :: Nil
-  )
+  StructField("id", StringType) ::
+          StructField("title", StringType) ::
+          StructField("price", DoubleType) :: Nil
+)
 
-    val books = {
-      spark.read
-        .format("xml")
-        .schema(schema)
-        .option("rootXQuery", "./catalog/book")
-        .option("column.xpath.id", "./@id")
-        .option("column.xpath.title", "./title")
-        .option("column.xpath.price", "./price")
-        .option("rowTag", "catalog")
-        .load("/home/dan/IdeaProjects/spark-xml/src/test/resources/books.xml")
+val books = {
+  spark.read
+          .format("xml")
+          .schema(schema)
+          .option("rootXQuery", "./catalog/book")
+          .option("column.xpath.id", "./@id")
+          .option("column.xpath.title", "./title")
+          .option("column.xpath.price", "./price")
+          .option("rowTag", "catalog")
+          .load("/home/dan/IdeaProjects/spark-xml/src/test/resources/books.xml")
 
-    }
+}
 
-    books.show
+books.show
 ```
-returns this table:
+returns table:
 ```
 +-----+--------------------+-----+
 |   id|               title|price|
