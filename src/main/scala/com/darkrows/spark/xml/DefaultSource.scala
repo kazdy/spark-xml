@@ -61,13 +61,13 @@ class DefaultSource
 
     val path = checkPath(parameters)
     // We need the `charset` and `rowTag` before creating the relation.
-    val (charset, rowTag) = {
+    val (charset, startTag, endTag) = {
       val options = XmlOptions(parameters, schema)
-      (options.charset, options.rowTag)
+      (options.charset, options.startTag, options.endTag)
     }
 
     XmlRelation(
-      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
+      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, startTag, endTag),
       Some(path),
       parameters,
       schema)(sqlContext)

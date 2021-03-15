@@ -15,6 +15,7 @@
 package com.darkrows.spark.xml
 
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -23,6 +24,12 @@ import org.scalatest.matchers.should.Matchers
  * Tests various cases of partition size, compression.
  */
 final class XmlPartitioningSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll {
+
+  val schema = StructType(
+    StructField("id", StringType) ::
+      StructField("title", StringType) ::
+      StructField("price", DoubleType) :: Nil
+  )
 
   private def doPartitionTest(suffix: String, blockSize: Long, large: Boolean): Unit = {
     val spark = SparkSession.builder()
@@ -34,7 +41,14 @@ final class XmlPartitioningSuite extends AnyFunSuite with Matchers with BeforeAn
     try {
       val fileName = s"fias_house${if (large) ".large" else ""}.xml$suffix"
       val xmlFile = getClass.getClassLoader.getResource(fileName).getFile
-      val results = spark.read.option("rowTag", "House").option("mode", "FAILFAST").xml(xmlFile)
+      val results = spark.read
+        .schema(StructType(StructField("id", StringType) :: Nil))
+        .option("rootXQuery", "./Houses/House")
+        .option("column.xpath.id", "./@HOUSEID")
+        .option("startTag", "<Houses>")
+        .option("endTag", "</Houses>")
+        .format("xml")
+        .load(xmlFile)
       // Test file has 37 records; large file is 20x the records
       assert(results.count() === (if (large) 740 else 37))
     } finally {

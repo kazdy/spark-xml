@@ -1,14 +1,10 @@
 package com.darkrows.spark.xml.processor
 
-import com.darkrows.spark.xml.table.XmlTable
 import net.sf.saxon.s9api.{DocumentBuilder, Processor, XdmNode}
-import org.apache.spark.sql.Row
 import org.xml.sax.InputSource
 
 import java.io.{ByteArrayInputStream, InputStream}
 import javax.xml.transform.sax.SAXSource
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.JavaConversions._
 
 private[xml] object XmlProcessor extends Serializable {
 

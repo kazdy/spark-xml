@@ -25,7 +25,7 @@ import org.apache.spark.sql.types.{ArrayType, StructType}
 package object xml {
 
   implicit class XmlDataFrameReader(reader: DataFrameReader) {
-    def xml: String => DataFrame = reader.format("com.databricks.spark.xml").load
+    def xml: String => DataFrame = reader.format("com.darkrows.spark.xml").load
 
     def xml(xmlDataset: Dataset[String]): DataFrame = {
       val spark = SparkSession.builder.getOrCreate()

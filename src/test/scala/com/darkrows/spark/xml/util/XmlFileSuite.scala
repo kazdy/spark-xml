@@ -26,11 +26,15 @@ final class XmlFileSuite extends AnyFunSuite with BeforeAndAfterAll {
   private val booksFile = "src/test/resources/books.xml"
   private val booksUnicodeInTagNameFile = "src/test/resources/books-unicode-in-tag-name.xml"
   private val booksFileTag = "book"
-  private val booksUnicodeFileTag = "\u66F8" // scalastyle:ignore
+  private val booksStartTag = "<book>"
+  private val booksEndTag = "</book>"
+  private val booksUnicodeStartTag = "<\u66F8>" // scalastyle:ignore
+  private val booksUnicodeEndTag = "</\u66F8>" // scalastyle:ignore
   private val numBooks = 12
   private val numBooksUnicodeInTagName = 3
   private val fiasHouse = "src/test/resources/fias_house.xml"
-  private val fiasRowTag = "House"
+  private val fiasStartTag = "<House>"
+  private val fiasEndTag = "</House>"
   private val numHouses = 37
   private val utf8 = StandardCharsets.UTF_8.name
 
@@ -51,25 +55,25 @@ final class XmlFileSuite extends AnyFunSuite with BeforeAndAfterAll {
   }
 
   test("read utf-8 encoded file") {
-    val baseRDD = XmlFile.withCharset(sparkContext, booksFile, utf8, rowTag = booksFileTag)
+    val baseRDD = XmlFile.withCharset(sparkContext, booksFile, utf8, booksStartTag, booksEndTag)
     assert(baseRDD.count() === numBooks)
   }
 
   test("read file with unicode chars in row tag name") {
     val baseRDD = XmlFile.withCharset(
-      sparkContext, booksUnicodeInTagNameFile, utf8, rowTag = booksUnicodeFileTag)
+      sparkContext, booksUnicodeInTagNameFile, utf8, booksUnicodeStartTag, booksUnicodeEndTag)
     assert(baseRDD.count() === numBooksUnicodeInTagName)
   }
 
   test("read utf-8 encoded file with empty tag") {
-    val baseRDD = XmlFile.withCharset(sparkContext, fiasHouse, utf8, rowTag = fiasRowTag)
+    val baseRDD = XmlFile.withCharset(sparkContext, fiasHouse, utf8, fiasStartTag, fiasEndTag)
     assert(baseRDD.count() == numHouses)
     baseRDD.collect().foreach(x => assert(x.contains("/>")))
   }
 
   test("unsupported charset") {
     val exception = intercept[UnsupportedCharsetException] {
-      XmlFile.withCharset(sparkContext, booksFile, "frylock", rowTag = booksFileTag).count()
+      XmlFile.withCharset(sparkContext, booksFile, "frylock", booksStartTag, booksEndTag).count()
     }
     assert(exception.getMessage.contains("frylock"))
   }

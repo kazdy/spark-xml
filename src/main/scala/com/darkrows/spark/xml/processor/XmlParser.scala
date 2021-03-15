@@ -17,8 +17,7 @@ package com.darkrows.spark.xml.processor
 
 import com.darkrows.spark.xml.XmlOptions
 import com.darkrows.spark.xml.table.{XmlCompiledColumn, XmlTable}
-import com.darkrows.spark.xml.table.XmlCompiledColumn
-import com.darkrows.spark.xml.util.TypeCast.{castTo, convertTo}
+import com.darkrows.spark.xml.util.TypeCast.castTo
 import net.sf.saxon.s9api.{XdmItem, XdmNode, XdmSequenceIterator}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
@@ -37,7 +36,7 @@ private[xml] object XmlParser extends Serializable {
              xml: RDD[String],
              xmlTable: XmlTable,
              options: XmlOptions): RDD[Row] = {
-    xml.mapPartitions(iter => iter.flatMap(xml => parseXmlTable(xml, xmlTable, options)) )
+    xml.mapPartitions(iter => iter.flatMap(xml => parseXmlTable(xml, xmlTable, options)))
   }
 
   private def parseXmlTable(xml: String, xmlTable: XmlTable, options: XmlOptions): Iterator[Row] = {
@@ -65,6 +64,7 @@ private[xml] object XmlParser extends Serializable {
     // return Iterator of Row
     processRow(xqueryResult, columns, options)
   }
+
   private def processRow(xqueryResult: XdmSequenceIterator[XdmItem],
                          columns: Array[XmlCompiledColumn],
                          options: XmlOptions): Iterator[Row] = {
@@ -74,7 +74,7 @@ private[xml] object XmlParser extends Serializable {
           // process every column, exec xpath with context item
           val xpathResult = XPathHelper.prepare(column.xpath, contextRow).evaluate()
           // return null if empty, return string value if not empty
-          if (xpathResult.isEmpty){
+          if (xpathResult.isEmpty) {
             null
           } else if (xpathResult.size() <= 1) {
             val result = xpathResult.getUnderlyingValue.getStringValue

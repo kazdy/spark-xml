@@ -32,8 +32,10 @@ private[xml] class XmlOptions(
   def this() = this(Map.empty, null)
 
   val charset = parameters.getOrElse("charset", XmlOptions.DEFAULT_CHARSET)
-  val rowTag = parameters.getOrElse("rowTag", XmlOptions.DEFAULT_ROW_TAG)
-    require(rowTag.nonEmpty, "'rowTag' option should not be empty string.")
+  val startTag = parameters.getOrElse("startTag", XmlOptions.DEFAULT_START_TAG)
+    require(startTag.nonEmpty, "'startTag' option should not be empty string.")
+  val endTag = parameters.getOrElse("endTag", XmlOptions.DEFAULT_END_TAG)
+    require(endTag.nonEmpty, "'endTag' option should not be empty string.")
   val nullValue = parameters.getOrElse("nullValue", XmlOptions.DEFAULT_NULL_VALUE)
   val timestampFormat = parameters.get("timestampFormat")
   val dateFormat = parameters.get("dateFormat")
@@ -86,7 +88,8 @@ private[xml] class XmlOptions(
 }
 
 private[xml] object XmlOptions {
-  val DEFAULT_ROW_TAG = "ROW"
+  val DEFAULT_START_TAG = "<ROW>"
+  val DEFAULT_END_TAG = "</ROW>"
   val DEFAULT_CHARSET: String = StandardCharsets.UTF_8.name
   val DEFAULT_NULL_VALUE: String = null
 

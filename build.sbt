@@ -45,12 +45,8 @@ pomExtra :=
   </scm>
   <developers>
     <developer>
-      <id>hyukjinkwon</id>
-      <name>Hyukjin Kwon</name>
-    </developer>
-    <developer>
-      <id>srowen</id>
-      <name>Sean Owen</name>
+      <id>kazdy</id>
+      <name>Daniel Kazmirski</name>
     </developer>
   </developers>
 
@@ -71,24 +67,24 @@ mimaBinaryIssueFilters ++= {
   import com.typesafe.tools.mima.core.DirectMissingMethodProblem
   Seq(
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.parsers.StaxXmlParser.convertField"),
+      "com.darkrows.spark.xml.parsers.StaxXmlParser.convertField"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.parseXmlTimestamp"),
+      "com.darkrows.spark.xml.util.TypeCast.parseXmlTimestamp"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.supportedXmlTimestampFormatters"),
+      "com.darkrows.spark.xml.util.TypeCast.supportedXmlTimestampFormatters"),
     exclude[DirectMissingMethodProblem](
-    "com.databricks.spark.xml.util.TypeCast.parseXmlDate"),
+    "com.darkrows.spark.xml.util.TypeCast.parseXmlDate"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.supportedXmlDateFormatters"),
+      "com.darkrows.spark.xml.util.TypeCast.supportedXmlDateFormatters"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.supportedXmlDateFormatters"),
+      "com.darkrows.spark.xml.util.TypeCast.supportedXmlDateFormatters"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.parseXmlDate"),
+      "com.darkrows.spark.xml.util.TypeCast.parseXmlDate"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.supportedXmlTimestampFormatters"),
+      "com.darkrows.spark.xml.util.TypeCast.supportedXmlTimestampFormatters"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.parseXmlTimestamp"),
+      "com.darkrows.spark.xml.util.TypeCast.parseXmlTimestamp"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.isTimestamp")
+      "com.darkrows.spark.xml.util.TypeCast.isTimestamp")
   )
 }

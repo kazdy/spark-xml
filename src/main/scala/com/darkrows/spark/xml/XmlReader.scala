@@ -101,12 +101,12 @@ class XmlReader extends Serializable {
    */
   def xmlFile(spark: SparkSession, path: String): DataFrame = {
     // We need the `charset` and `rowTag` before creating the relation.
-    val (charset, rowTag) = {
+    val (charset, startTag, endTag) = {
       val options = XmlOptions(parameters.toMap, schema)
-      (options.charset, options.rowTag)
+      (options.charset, options.startTag, options.endTag)
     }
     val relation = XmlRelation(
-      () => XmlFile.withCharset(spark.sparkContext, path, charset, rowTag),
+      () => XmlFile.withCharset(spark.sparkContext, path, charset, startTag, endTag),
       Some(path),
       parameters.toMap,
       schema)(spark.sqlContext)
@@ -140,12 +140,12 @@ class XmlReader extends Serializable {
   @deprecated("Use xmlFile(SparkSession, ...)", "0.5.0")
   def xmlFile(sqlContext: SQLContext, path: String): DataFrame = {
     // We need the `charset` and `rowTag` before creating the relation.
-    val (charset, rowTag) = {
+    val (charset, startTag, endTag) = {
       val options = XmlOptions(parameters.toMap, schema)
-      (options.charset, options.rowTag)
+      (options.charset, options.startTag, options.endTag)
     }
     val relation = XmlRelation(
-      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, rowTag),
+      () => XmlFile.withCharset(sqlContext.sparkContext, path, charset, startTag, endTag),
       Some(path),
       parameters.toMap,
       schema)(sqlContext)
