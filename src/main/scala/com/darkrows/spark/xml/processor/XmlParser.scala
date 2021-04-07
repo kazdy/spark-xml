@@ -31,15 +31,14 @@ import scala.collection.JavaConversions._
 private[xml] object XmlParser extends Serializable {
   private val logger = LoggerFactory.getLogger(XmlParser.getClass)
 
-  // TODO: change parse implementation to return XMLTABLE as RDD[Row]
   def parse(
              xml: RDD[String],
              xmlTable: XmlTable,
              options: XmlOptions): RDD[Row] = {
-    xml.mapPartitions(iter => iter.flatMap(xml => parseXmlTable(xml, xmlTable, options)))
+    xml.mapPartitions(iter => iter.flatMap(xml => parse(xml, xmlTable, options)))
   }
 
-  private def parseXmlTable(xml: String, xmlTable: XmlTable, options: XmlOptions): Iterator[Row] = {
+  private def parse(xml: String, xmlTable: XmlTable, options: XmlOptions): Iterator[Row] = {
     val xmlTree = XmlProcessor.buildXdmTree(xml)
     processXmlTable(xmlTable, xmlTree, options)
   }
@@ -69,7 +68,7 @@ private[xml] object XmlParser extends Serializable {
                          columns: Array[XmlCompiledColumn],
                          options: XmlOptions): Iterator[Row] = {
     val resultIterator = xqueryResult.map(contextRow => {
-      val rowArray: Array[Any] = columns.map(
+      val rowArray = columns.map(
         column => {
           // process every column, exec xpath with context item
           val xpathResult = XPathHelper.prepare(column.xpath, contextRow).evaluate()
@@ -89,6 +88,7 @@ private[xml] object XmlParser extends Serializable {
     })
     resultIterator
   }
+
 }
 
 

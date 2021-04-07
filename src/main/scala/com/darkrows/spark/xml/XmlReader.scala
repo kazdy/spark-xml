@@ -24,10 +24,27 @@ import org.apache.spark.sql.types.StructType
 /**
  * A collection of static functions for working with XML files in Spark SQL
  */
-class XmlReader extends Serializable {
-  private var parameters = collection.mutable.Map.empty[String, String]
-  private var schema: StructType = null
+class XmlReader(private var schema: StructType,
+                private val options: Map[String, Any]) extends Serializable {
 
+  private val parameters = collection.mutable.Map.empty[String, String]
+  parameters ++= options.mapValues(_.toString)
+
+  // explicit constructors for Java compatibility
+
+  def this() {
+    this(null, Map.empty)
+  }
+
+  def this(schema: StructType) {
+    this(schema, Map.empty)
+  }
+
+  def this(options: Map[String, Any]){
+    this(null, options)
+  }
+
+  @deprecated("Use XmlReader (Map) with key 'charset' to specify options")
   def withCharset(charset: String): XmlReader = {
     parameters += ("charset" -> charset)
     this

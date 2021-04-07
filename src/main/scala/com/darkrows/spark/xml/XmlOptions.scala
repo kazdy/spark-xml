@@ -25,11 +25,11 @@ import org.apache.spark.sql.types.StructType
  */
 private[xml] class XmlOptions(
     @transient private val parameters: Map[String, String],
-    @transient private val userSchema: StructType
+    @transient private val userSchema: Option[StructType]
     )
   extends Serializable {
 
-  def this() = this(Map.empty, null)
+  def this() = this(Map.empty, None)
 
   val charset = parameters.getOrElse("charset", XmlOptions.DEFAULT_CHARSET)
   val startTag = parameters.getOrElse("startTag", XmlOptions.DEFAULT_START_TAG)
@@ -72,10 +72,13 @@ private[xml] class XmlOptions(
   }
   // This just checks the column options early, to keep behavior
   def validateSchemaAndOptions(): Unit = {
-    val xmlColumnPathsSet = xmlColumnPaths.map(_.name).toSet
-    val schemaOptionsDiff = userSchema.fieldNames.toSet diff xmlColumnPathsSet
+   val schema = userSchema
+     .getOrElse(throw new IllegalArgumentException("No user schema was provided"))
 
-    if (userSchema.size != xmlColumnPaths.size) {
+    val xmlColumnPathsSet = xmlColumnPaths.map(_.name).toSet
+    val schemaOptionsDiff = schema.fieldNames.toSet diff xmlColumnPathsSet
+
+    if (schema.size != xmlColumnPaths.size) {
       throw new UnsupportedOperationException(
         "Number of columns in schema is not equal to number of columns in options")
     } else if (schemaOptionsDiff.size > 0){
@@ -94,5 +97,5 @@ private[xml] object XmlOptions {
   val DEFAULT_NULL_VALUE: String = null
 
    def apply(parameters: Map[String, String],
-             userSchema: StructType): XmlOptions = new XmlOptions(parameters, userSchema)
+             userSchema: StructType): XmlOptions = new XmlOptions(parameters, Option(userSchema))
 }

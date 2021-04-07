@@ -33,11 +33,16 @@ object xmltest extends App {
 
     }
 
-    books.show
+    // books.show
 
 
   val schemaHouses = StructType(
-    StructField("id", StringType) :: Nil
+    StructField("id", StringType) ::
+      StructField("id1", StringType) ::
+      StructField("id2", StringType) ::
+      StructField("id3", StringType) ::
+      StructField("id4", StringType) ::
+      StructField("id5", StringType) :: Nil
   )
 
   val houses = {
@@ -46,11 +51,18 @@ object xmltest extends App {
       .schema(schemaHouses)
       .option("rootXQuery", "./Houses/House")
       .option("column.xpath.id", "./@HOUSEID")
+      .option("column.xpath.id1", "./@HOUSEGUID")
+      .option("column.xpath.id2", "./@AOGUID")
+      .option("column.xpath.id3", "./@HOUSENUM")
+      .option("column.xpath.id4", "./@TERRIFNSFL")
+      .option("column.xpath.id5", "./@ENDDATE")
       .option("startTag", "<Houses>")
       .option("endTag", "</Houses>")
-      .load("/home/dan/IdeaProjects/spark-xml/src/test/resources/fias_house.xml")
+      .load("/home/dan/IdeaProjects/spark-xml/src/test/resources/fias_house.very_large.xml")
 
   }
-
+  val startTime = System.currentTimeMillis()
   println(houses.count())
+  val endTime = System.currentTimeMillis()
+  println(s"Execution time: ${endTime - startTime} milisectonds")
 }
