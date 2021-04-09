@@ -174,21 +174,22 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
 
   test("DDL test") {
     spark.sql(s"""
-                 |CREATE TEMPORARY TABLE carsTable1
-                 |(year string)
+                 |CREATE TEMPORARY VIEW carsTable1
+                 |(year string, comment string)
                  |USING com.darkrows.spark.xml
                  |OPTIONS (path "${resDir + "cars.xml"}",
                  |rootXQuery "./ROW",
-                 |column.xpath.year "./year")
+                 |column.xpath.year "./year",
+                 |column.xpath.comment "./comment")
       """.stripMargin.replaceAll("\n", " "))
-    spark.sql("SELECT year FROM carsTable1").show()
-    assert(spark.sql("SELECT year FROM carsTable1").collect().length === 3)
+    spark.sql("SELECT year, comment comment FROM carsTable1").show()
+    assert(spark.sql("SELECT year, comment FROM carsTable1").collect().length === 3)
   }
 
 
   test("DDL test with alias name") {
     spark.sql(s"""
-                 |CREATE TEMPORARY TABLE carsTable2
+                 |CREATE TEMPORARY VIEW carsTable2
                  |(year string)
                  |USING xml
                  |OPTIONS (path "${resDir + "cars.xml"}",
@@ -215,14 +216,21 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
         "\"model\" must be terminated by the matching end-tag \"</model>\""))
   }
 
-/*
+
 
   test("DSL test with empty file and known schema") {
-    val results = new XmlReader(buildSchema(field("column", StringType)))
-      .xmlFile(spark, resDir + "empty.xml")
-      .count()
 
-    assert(results === 0)
+    val schema = buildSchema(field("year", IntegerType), field("comment", StringType))
+
+    val result = new XmlReader(schema, Map(
+      "rootXQuery" -> "./ROW",
+      "column.xpath.year"-> "./year",
+      "column.xpath.comment" -> "./comment"))
+      .xmlFile(spark, resDir + "empty.xml")
+      .select("year")
+      .collect()
+
+    assert(result.length === 0)
   }
 
   test("DSL test with poorly formatted file and string schema") {
@@ -232,7 +240,14 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       field("make"),
       field("model"),
       field("comment"))
-    val results = new XmlReader(schema)
+    val results = new XmlReader(schema, Map(
+      "rootXQuery" -> "./ROW",
+      "column.xpath.color" -> "./color",
+      "column.xpath.year" -> "./year",
+      "column.xpath.make" -> "./make",
+      "column.xpath.model" -> "./model",
+      "column.xpath.comment" -> "./comment"
+    ))
       .xmlFile(spark, resDir + "cars-unbalanced-elements.xml")
       .count()
 
@@ -242,375 +257,28 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
   test("DDL test with empty file") {
     spark.sql(s"""
                  |CREATE TEMPORARY VIEW carsTable3
-                 |(year double, make string, model string, comments string, grp string)
-                 |USING com.databricks.spark.xml
-                 |OPTIONS (path "${resDir + "empty.xml"}")
+                 |(year double, make string, model string, comments string)
+                 |USING com.darkrows.spark.xml
+                 |OPTIONS (path "${resDir + "empty.xml"}"
+                 |,rootXQuery "./ROW"
+                 |,column.xpath.year "./year"
+                 |,column.xpath.make "./make"
+                 |,column.xpath.model "./model"
+                 |,column.xpath.comments "./comments")
       """.stripMargin.replaceAll("\n", " "))
 
     assert(spark.sql("SELECT count(*) FROM carsTable3").collect().head(0) === 0)
   }
 
-  test("SQL test insert overwrite") {
-    val tempPath = getEmptyTempDir()
-    spark.sql(s"""
-                 |CREATE TEMPORARY VIEW booksTableIO
-                 |USING com.databricks.spark.xml
-                 |OPTIONS (path "${resDir + "books.xml"}", rowTag "book")
-      """.stripMargin.replaceAll("\n", " "))
-    spark.sql(s"""
-                 |CREATE TEMPORARY VIEW booksTableEmpty
-                 |(author string, description string, genre string,
-                 |id string, price double, publish_date string, title string)
-                 |USING com.databricks.spark.xml
-                 |OPTIONS (path "$tempPath")
-      """.stripMargin.replaceAll("\n", " "))
-
-    assert(spark.sql("SELECT * FROM booksTableIO").collect().length === 12)
-    assert(spark.sql("SELECT * FROM booksTableEmpty").collect().isEmpty)
-
-    spark.sql(
-      s"""
-         |INSERT OVERWRITE TABLE booksTableEmpty
-         |SELECT * FROM booksTableIO
-      """.stripMargin.replaceAll("\n", " "))
-    assert(spark.sql("SELECT * FROM booksTableEmpty").collect().length == 12)
-  }
-
-  test("DSL save with gzip compression codec") {
-    val copyFilePath = getEmptyTempDir().resolve("cars-copy.xml")
-
-    val cars = spark.read.xml(resDir + "cars.xml")
-    cars.write
-      .mode(SaveMode.Overwrite)
-      .options(Map("codec" -> classOf[GzipCodec].getName))
-      .xml(copyFilePath.toString)
-    // Check that the part file has a .gz extension
-    assert(Files.exists(copyFilePath.resolve("part-00000.gz")))
-
-    val carsCopy = spark.read.xml(copyFilePath.toString)
-
-    assert(carsCopy.count === cars.count)
-    assert(carsCopy.collect.map(_.toString).toSet === cars.collect.map(_.toString).toSet)
-  }
-
-  test("DSL save with gzip compression codec by shorten name") {
-    val copyFilePath = getEmptyTempDir().resolve("cars-copy.xml")
-
-    val cars = spark.read.xml(resDir + "cars.xml")
-    cars.write
-      .mode(SaveMode.Overwrite)
-      .options(Map("compression" -> "gZiP"))
-      .xml(copyFilePath.toString)
-
-    // Check that the part file has a .gz extension
-    assert(Files.exists(copyFilePath.resolve("part-00000.gz")))
-
-    val carsCopy = spark.read.xml(copyFilePath.toString)
-
-    assert(carsCopy.count === cars.count)
-    assert(carsCopy.collect.map(_.toString).toSet === cars.collect.map(_.toString).toSet)
-  }
-
-  test("DSL save") {
-    val copyFilePath = getEmptyTempDir().resolve("books-copy.xml")
-
-    val books = spark.read
-      .option("rowTag", "book")
-      .xml(resDir + "books-complicated.xml")
-    books.write
-      .options(Map("rootTag" -> "books", "rowTag" -> "book"))
-      .xml(copyFilePath.toString)
-
-    val booksCopy = spark.read
-      .option("rowTag", "book")
-      .xml(copyFilePath.toString)
-    assert(booksCopy.count === books.count)
-    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
-  }
-
-  test("DSL save with nullValue and treatEmptyValuesAsNulls") {
-    val copyFilePath = getEmptyTempDir().resolve("books-copy.xml")
-
-    val books = spark.read
-      .option("rowTag", "book")
-      .xml(resDir + "books-complicated.xml")
-    books.write
-      .options(Map("rootTag" -> "books", "rowTag" -> "book", "nullValue" -> ""))
-      .xml(copyFilePath.toString)
-
-    val booksCopy = spark.read
-      .option("rowTag", "book")
-      .option("treatEmptyValuesAsNulls", "true")
-      .xml(copyFilePath.toString)
-
-    assert(booksCopy.count === books.count)
-    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
-  }
-
-  test("Write values properly as given to valueTag even if it starts with attributePrefix") {
-    val copyFilePath = getEmptyTempDir().resolve("books-copy.xml")
-
-    val rootTag = "catalog"
-    val books = spark.read
-      .option("valueTag", "#VALUE")
-      .option("attributePrefix", "#")
-      .option("rowTag", "book")
-      .xml(resDir + "books-attributes-in-no-child.xml")
-
-    books.write
-      .option("valueTag", "#VALUE")
-      .option("attributePrefix", "#")
-      .option("rootTag", rootTag)
-      .option("rowTag", "book")
-      .xml(copyFilePath.toString)
-
-    val booksCopy = spark.read
-      .option("valueTag", "#VALUE")
-      .option("attributePrefix", "_")
-      .option("rowTag", "book")
-      .xml(copyFilePath.toString)
-
-    assert(booksCopy.count === books.count)
-    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
-  }
-
-  test("DSL save dataframe not read from a XML file") {
-    val copyFilePath = getEmptyTempDir().resolve("data-copy.xml")
-
-    val schema = buildSchema(array("a", ArrayType(StringType)))
-    val data = spark.sparkContext.parallelize(
-      List(List(List("aa", "bb"), List("aa", "bb")))).map(Row(_))
-    val df = spark.createDataFrame(data, schema)
-    df.write.xml(copyFilePath.toString)
-
-    // When [[ArrayType]] has [[ArrayType]] as elements, it is confusing what is the elementresDir
-    // name for XML file. Now, it is "item". So, "item" field is additionally added
-    // to wrap the element.
-    val schemaCopy = buildSchema(
-      structArray("a",
-        field("item", ArrayType(StringType))))
-    val dfCopy = spark.read.xml(copyFilePath.toString)
-
-    assert(dfCopy.count === df.count)
-    assert(dfCopy.schema === schemaCopy)
-  }
-
-  test("DSL save dataframe with data types correctly") {
-    val copyFilePath = getEmptyTempDir().resolve("data-copy.xml")
-
-    // Create the schema.
-    val dataTypes = Array(
-      StringType, NullType, BooleanType,
-      ByteType, ShortType, IntegerType, LongType,
-      FloatType, DoubleType, DecimalType(25, 3), DecimalType(6, 5),
-      DateType, TimestampType, MapType(StringType, StringType))
-    val fields = dataTypes.zipWithIndex.map { case (dataType, index) =>
-      field(s"col$index", dataType)
-    }
-    val schema = StructType(fields)
-
-    val currentTZ = TimeZone.getDefault
-    try {
-      // Tests will depend on default timezone, so set it to UTC temporarily
-      TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
-      // Create the data
-      val timestamp = "2015-01-01 00:00:00"
-      val date = "2015-01-01"
-      val row =
-        Row(
-          "aa", null, true,
-          1.toByte, 1.toShort, 1, 1.toLong,
-          1.toFloat, 1.toDouble, Decimal(1, 25, 3), Decimal(1, 6, 5),
-          Date.valueOf(date), Timestamp.valueOf(timestamp), Map("a" -> "b"))
-      val data = spark.sparkContext.parallelize(Seq(row))
-
-      val df = spark.createDataFrame(data, schema)
-      df.write.xml(copyFilePath.toString)
-
-      val dfCopy = new XmlReader(schema)
-        .xmlFile(spark, copyFilePath.toString)
-
-      assert(dfCopy.collect() === df.collect())
-      assert(dfCopy.schema === df.schema)
-    } finally {
-      TimeZone.setDefault(currentTZ)
-    }
-  }
-
-  test("DSL test schema inferred correctly") {
-    val results = spark.read.option("rowTag", "book").xml(resDir + "books.xml")
-
-    assert(results.schema === buildSchema(
-      field(s"${DEFAULT_ATTRIBUTE_PREFIX}id"),
-      field("author"),
-      field("description"),
-      field("genre"),
-      field("price", DoubleType),
-      field("publish_date", DateType),
-      field("title")))
-
-    assert(results.collect().length === 12)
-  }
-
-  test("DSL test schema inferred correctly with sampling ratio") {
-    val results = spark.read
-      .option("rowTag", "book")
-      .option("samplingRatio", 0.5)
-      .xml(resDir + "books.xml")
-
-    assert(results.schema === buildSchema(
-      field(s"${DEFAULT_ATTRIBUTE_PREFIX}id"),
-      field("author"),
-      field("description"),
-      field("genre"),
-      field("price", DoubleType),
-      field("publish_date", DateType),
-      field("title")))
-
-    assert(results.collect().length === 12)
-  }
-
-  test("DSL test schema (object) inferred correctly") {
-    val results = spark.read
-      .option("rowTag", "book")
-      .xml(resDir + "books-nested-object.xml")
-
-    assert(results.schema === buildSchema(
-      field(s"${DEFAULT_ATTRIBUTE_PREFIX}id"),
-      field("author"),
-      field("description"),
-      field("genre"),
-      field("price", DoubleType),
-      struct("publish_dates",
-        field("publish_date", DateType)),
-      field("title")))
-
-    assert(results.collect().length === 12)
-  }
-
-  test("DSL test schema (array) inferred correctly") {
-    val results = spark.read
-      .option("rowTag", "book")
-      .xml(resDir + "books-nested-array.xml")
-
-    assert(results.schema === buildSchema(
-      field(s"${DEFAULT_ATTRIBUTE_PREFIX}id"),
-      field("author"),
-      field("description"),
-      field("genre"),
-      field("price", DoubleType),
-      array("publish_date", DateType),
-      field("title")))
-
-    assert(results.collect().length === 12)
-  }
-
-  test("DSL test schema (complicated) inferred correctly") {
-    val results = spark.read
-      .option("rowTag", "book")
-      .xml(resDir + "books-complicated.xml")
-
-    assert(results.schema == buildSchema(
-      field(s"${DEFAULT_ATTRIBUTE_PREFIX}id"),
-      field("author"),
-      struct("genre",
-        field("genreid", LongType),
-        field("name")),
-      field("price", DoubleType),
-      struct("publish_dates",
-        array("publish_date",
-          struct(
-            field(s"${DEFAULT_ATTRIBUTE_PREFIX}tag"),
-            field("day", LongType),
-            field("month", LongType),
-            field("year", LongType)))),
-      field("title")))
-
-    assert(results.collect().length === 3)
-  }
-
-  test("DSL test parsing and inferring attribute in elements having no child element") {
-    // Default value.
-    val resultsOne = new XmlReader(Map("rowTag" -> "book"))
-      .xmlFile(spark, resDir + "books-attributes-in-no-child.xml")
-
-    val schemaOne = buildSchema(
-      field("_id"),
-      field("author"),
-      struct("price",
-        field("_VALUE"),
-        field(s"_unit")),
-      field("publish_date", DateType),
-      field("title"))
-
-    assert(resultsOne.schema === schemaOne)
-    assert(resultsOne.count === 12)
-
-    // Explicitly set
-    val attributePrefix = "@#"
-    val valueTag = "#@@value"
-    val resultsTwo = new XmlReader(Map(
-      "rowTag" -> "book", "attributePrefix" -> attributePrefix,
-      "valueTag" -> valueTag))
-      .xmlFile(spark, resDir + "books-attributes-in-no-child.xml")
-
-    val schemaTwo = buildSchema(
-      field(s"${attributePrefix}id"),
-      field("author"),
-      struct("price",
-        field(valueTag),
-        field(s"${attributePrefix}unit")),
-      field("publish_date", DateType),
-      field("title"))
-
-    assert(resultsTwo.schema === schemaTwo)
-    assert(resultsTwo.count === 12)
-  }
-
-  test("DSL test schema (excluding tags) inferred correctly") {
-    val results = new XmlReader(Map("excludeAttribute" -> true, "rowTag" -> "book"))
-      .xmlFile(spark, resDir + "books.xml")
-
-    val schema = buildSchema(
-      field("author"),
-      field("description"),
-      field("genre"),
-      field("price", DoubleType),
-      field("publish_date", DateType),
-      field("title"))
-
-    assert(results.schema === schema)
-  }
-
-  test("DSL test with custom schema") {
-    val schema = buildSchema(
-      field("make"),
-      field("model"),
-      field("comment"),
-      field("color"),
-      field("year", IntegerType))
-    val results = new XmlReader(schema)
-      .xmlFile(spark, resDir + "cars-unbalanced-elements.xml")
-      .count()
-
-    assert(results === 3)
-  }
-
-  test("DSL test inferred schema passed through") {
-    val dataFrame = spark.read.xml(resDir + "cars.xml")
-
-    val results = dataFrame
-      .select("comment", "year")
-      .where(dataFrame("year") === 2012)
-
-    assert(results.head() === Row("No comment", 2012))
-  }
 
   test("DSL test nullable fields") {
     val schema = buildSchema(
       field("name", StringType, false),
       field("age"))
-    val results = new XmlReader(schema)
+    val results = new XmlReader(schema, Map(
+      "rootXQuery" -> "./ROW",
+      "column.xpath.name"-> "./name",
+      "column.xpath.age" -> "./age"))
       .xmlFile(spark, resDir + "null-numbers.xml")
       .collect()
 
@@ -619,361 +287,91 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(results(2) === Row("coc", "24"))
   }
 
-  test("DSL test for treating empty string as null value") {
+  test("DSL test for using nullValue to express empty string as null value") {
     val schema = buildSchema(
       field("name", StringType, false),
       field("age", IntegerType))
-    val results = new XmlReader(schema, Map("treatEmptyValuesAsNulls" -> true))
+    val results = new XmlReader(schema, Map(
+      "nullValue" -> "    ",
+      "rootXQuery" -> "./ROW",
+      "column.xpath.name"-> "./name",
+      "column.xpath.age" -> "./age"
+    ))
       .xmlFile(spark, resDir + "null-numbers.xml")
       .collect()
 
     assert(results(1) === Row("bob", null))
   }
 
-  test("DSL test with namespaces ignored") {
+  test("DSL test with default namespace") {
     val results = spark.read
-      .option("rowTag", "Topic")
+      .schema(buildSchema(field("catid", StringType)))
+      .option("startTag", "<RDF ")
+      .option("endTag", "</RDF> ")
+      .option("rootXQuery", "./RDF/Topic")
+      .option("column.xpath.catid", "./catid")
+      .option("namespace", "http://dmoz.org/rdf/")
       .xml(resDir + "topics-namespaces.xml")
       .collect()
 
     assert(results.length === 1)
   }
 
-  test("xs_any array matches single element") {
-    val schema = buildSchema(
-      field(s"${DEFAULT_ATTRIBUTE_PREFIX}id"),
-      field("author"),
-      field("description"),
-      field("genre"),
-      field("price", DoubleType),
-      field("publish_date"),
-      field("xs_any"))
-    val results = spark.read.schema(schema).option("rowTag", "book").xml(resDir + "books.xml")
-      // .select("xs_any")
-      .collect()
-    results.foreach { r =>
-      assert(r.getString(0) != null)
-    }
-  }
-
-  test("xs_any array matches multiple elements") {
-    val schema = buildSchema(
-      field(s"${DEFAULT_ATTRIBUTE_PREFIX}id"),
-      field("author"),
-      field("description"),
-      field("genre"),
-      array("xs_any", StringType))
-    val results = spark.read.schema(schema).option("rowTag", "book").xml(resDir + "books.xml")
-      .collect()
-    results.foreach { r =>
-      assert(r.getAs[Seq[String]]("xs_any").size === 3)
-    }
-  }
-
-  test("Missing nested struct represented as Row of nulls instead of null") {
-    val result = spark.read
-      .option("rowTag", "item")
-      .xml(resDir + "null-nested-struct.xml")
-      .select("b.es")
-      .collect()
-
-    assert(result(1).getStruct(0) !== null)
-    assert(result(1).getStruct(0)(0) === null)
-  }
-
-  test("Produces correct result for empty vs non-existent rows") {
-    val schema = buildSchema(
-      struct("b",
-        struct("es",
-          field("e"),
-          field("f"))))
-    val result = spark.read
-      .option("rowTag", "item")
-      .schema(schema)
-      .xml(resDir + "null-nested-struct-2.xml")
-      .collect()
-
-    assert(result(0) === Row(Row(null)))
-    assert(result(1) === Row(Row(Row(null, null))))
-    assert(result(2) === Row(Row(Row("E", null))))
-    assert(result(3) === Row(Row(Row("E", " "))))
-    assert(result(4) === Row(Row(Row("E", ""))))
-  }
-
-  test("Produces correct order of columns for nested rows when user specifies a schema") {
-    val schema = buildSchema(
-      struct("c",
-        field("b", IntegerType),
-        field("a", IntegerType)))
-
-    val result = new XmlReader(schema)
-      .xmlFile(spark, resDir + "simple-nested-objects.xml")
-      .select("c.a", "c.b")
-      .collect()
-
-    assert(result(0) === Row(111, 222))
-  }
-
-  private[this] def testNextedElementFromFile(xmlFile: String) = {
-    val lines = getLines(Paths.get(xmlFile)).toList
-    val firstExpected = lines(2).trim
-    val lastExpected = lines(3).trim
-    val config = new Configuration(spark.sparkContext.hadoopConfiguration)
-    config.set(XmlInputFormat.START_TAG_KEY, "<parent>")
-    config.set(XmlInputFormat.END_TAG_KEY, "</parent>")
-    val records = spark.sparkContext.newAPIHadoopFile(
-      xmlFile,
-      classOf[XmlInputFormat],
-      classOf[LongWritable],
-      classOf[Text],
-      config)
-    val list = records.values.map(_.toString).collect().toList
-    assert(list.length === 2)
-    val firstActual = list.head
-    val lastActual = list.last
-    assert(firstActual === firstExpected)
-    assert(lastActual === lastExpected)
-  }
-
-  test("Nested element with same name as parent delineation") {
-    testNextedElementFromFile(resDir + "nested-element-with-name-of-parent.xml")
-  }
-
-  test("Nested element including attribute with same name as parent delineation") {
-    testNextedElementFromFile(resDir + "nested-element-with-attributes-and-name-of-parent.xml")
-  }
-
-  test("Nested element with same name as parent schema inference") {
-    val df = new XmlReader(Map("rowTag" -> "parent"))
-      .xmlFile(spark, resDir + "nested-element-with-name-of-parent.xml")
-
-    val schema = buildSchema(
-      field("child"),
-      struct("parent",
-        field("child")))
-    assert(df.schema === schema)
-  }
-
   test("Skip and project currently XML files without indentation") {
-    val df = spark.read.xml(resDir + "cars-no-indentation.xml")
+    val df = spark.read
+      .schema(buildSchema(field("model", StringType)))
+      .option("rootXQuery", "./ROW")
+      .option("column.xpath.model", "./model")
+      .xml(resDir + "cars-no-indentation.xml")
     val results = df.select("model").collect()
     val years = results.map(_(0)).toSet
+
     assert(years === Set("S", "E350", "Volt"))
   }
 
-  test("Select correctly all child fields regardless of pushed down projection") {
-    val results = spark.read
-      .option("rowTag", "book")
-      .xml(resDir + "books-complicated.xml")
-      .selectExpr("publish_dates")
-      .collect()
-    results.foreach { row =>
-      // All nested fields should not have nulls but arrays.
-      assert(!row.anyNull)
-    }
-  }
-
-  test("Empty string not allowed for rowTag, attributePrefix and valueTag.") {
-    val messageOne = intercept[IllegalArgumentException] {
-      spark.read.option("rowTag", "").xml(resDir + "cars.xml")
-    }.getMessage
-    assert(messageOne === "requirement failed: 'rowTag' option should not be empty string.")
-
-    val messageTwo = intercept[IllegalArgumentException] {
-      spark.read.option("attributePrefix", "").xml(resDir + "cars.xml")
-    }.getMessage
-    assert(
-      messageTwo === "requirement failed: 'attributePrefix' option should not be empty string.")
-
-    val messageThree = intercept[IllegalArgumentException] {
-      spark.read.option("valueTag", "").xml(resDir + "cars.xml")
-    }.getMessage
-    assert(messageThree === "requirement failed: 'valueTag' option should not be empty string.")
-  }
-
-  test("valueTag and attributePrefix should not be the same.") {
-    val messageOne = intercept[IllegalArgumentException] {
-      spark.read
-        .option("valueTag", "#abc")
-        .option("attributePrefix", "#abc")
-        .xml(resDir + "cars.xml")
-    }.getMessage
-    assert(messageOne ===
-      "requirement failed: 'valueTag' and 'attributePrefix' options should not be the same.")
-  }
-
-  test("nullValue and treatEmptyValuesAsNulls test") {
-    val resultsOne = spark.read
-      .option("treatEmptyValuesAsNulls", "true")
-      .xml(resDir + "gps-empty-field.xml")
-    assert(resultsOne.selectExpr("extensions.TrackPointExtension").head.getStruct(0) !== null)
-    assert(resultsOne.selectExpr("extensions.TrackPointExtension")
-      .head.getStruct(0)(0) === null)
-    // Is the behavior below consistent? see line above.
-    assert(resultsOne.selectExpr("extensions.TrackPointExtension.hr").head.getStruct(0) === null)
-    assert(resultsOne.collect().length === 2)
-
-    val resultsTwo = spark.read
-      .option("nullValue", "2013-01-24T06:18:43Z")
-      .xml(resDir + "gps-empty-field.xml")
-    assert(resultsTwo.selectExpr("time").head.getStruct(0) === null)
-    assert(resultsTwo.collect().length === 2)
-  }
-
-  test("ignoreSurroundingSpaces test") {
-    val results = new XmlReader(Map("ignoreSurroundingSpaces" -> true, "rowTag" -> "person"))
-      .xmlFile(spark, resDir + "ages-with-spaces.xml")
-      .collect()
-    val attrValOne = results(0).getStruct(0)(1)
-    val attrValTwo = results(1).getStruct(0)(0)
-    assert(attrValOne.toString === "1990-02-24")
-    assert(attrValTwo === 30)
-    assert(results.length === 3)
-  }
-
-  test("DSL test with malformed attributes") {
-    val results = new XmlReader(Map("mode" -> DropMalformedMode.name, "rowTag" -> "book"))
-      .xmlFile(spark, resDir + "books-malformed-attributes.xml")
-      .collect()
-
-    assert(results.length === 2)
-    assert(results(0)(0) === "bk111")
-    assert(results(1)(0) === "bk112")
-  }
-
-  test("read utf-8 encoded file with empty tag") {
-    val df = spark.read
-      .option("excludeAttribute", "false")
-      .option("rowTag", "House")
-      .xml(resDir + "fias_house.xml")
-
-    assert(df.collect().length === 37)
-    assert(df.select().where("_HOUSEID is null").count() == 0)
-  }
-
-  test("attributes start with new line") {
-    val schema = buildSchema(
-      field("_schemaLocation"),
-      field("_xmlns"),
-      field("_xsi"),
-      field("body"),
-      field("from"),
-      field("heading"),
-      field("to"))
-
-    val rowsCount = 1
-
-    Seq("attributesStartWithNewLine.xml",
-      "attributesStartWithNewLineCR.xml",
-      "attributesStartWithNewLineLF.xml").foreach { file =>
-      val df = spark.read
-        .option("ignoreNamespace", "true")
-        .option("excludeAttribute", "false")
-        .option("rowTag", "note")
-        .xml(resDir + file)
-      assert(df.schema === schema)
-      assert(df.count() === rowsCount)
-    }
-  }
-
+// allways treat empty string returned from xpath as null
   test("Produces correct result for a row with a self closing tag inside") {
     val schema = buildSchema(
       field("non-empty-tag", IntegerType),
       field("self-closing-tag", IntegerType))
 
-    val result = new XmlReader(schema)
+    val result = new XmlReader(schema, Map(
+      "rootXQuery" -> "./ROW",
+      "column.xpath.non-empty-tag" -> "./non-empty-tag",
+      "column.xpath.self-closing-tag" -> "./self-closing-tag"
+    ))
       .xmlFile(spark, resDir + "self-closing-tag.xml")
       .collect()
 
     assert(result(0) === Row(1, null))
   }
 
-  test("DSL save with null attributes") {
-    val copyFilePath = getEmptyTempDir().resolve("books-copy.xml")
-
-    val books = spark.read
-      .option("rowTag", "book")
-      .xml(resDir + "books-complicated-null-attribute.xml")
-    books.write
-      .options(Map("rootTag" -> "books", "rowTag" -> "book"))
-      .xml(copyFilePath.toString)
-
-    val booksCopy = spark.read
-      .option("rowTag", "book")
-      .xml(copyFilePath.toString)
-    assert(booksCopy.count === books.count)
-    assert(booksCopy.collect.map(_.toString).toSet === books.collect.map(_.toString).toSet)
-  }
-
-  test("DSL test nulls out invalid values when set to permissive and given explicit schema") {
-    val schema = buildSchema(
-      struct("integer_value",
-        field("_VALUE", IntegerType),
-        field("_int", IntegerType)),
-      struct("long_value",
-        field("_VALUE", LongType),
-        field("_int", StringType)),
-      field("float_value", FloatType),
-      field("double_value", DoubleType),
-      field("boolean_value", BooleanType),
-      field("string_value"), array("integer_array", IntegerType),
-      field("integer_map", MapType(StringType, IntegerType)),
-      field("_malformed_records", StringType))
-    val results = spark.read
-      .option("mode", "PERMISSIVE")
-      .option("columnNameOfCorruptRecord", "_malformed_records")
-      .schema(schema)
-      .xml(resDir + "datatypes-valid-and-invalid.xml")
-
-    assert(results.schema === schema)
-
-    val Array(valid, invalid) = results.take(2)
-
-    assert(valid.toSeq.toArray.take(schema.length - 1) ===
-      Array(Row(10, 10), Row(10, "Ten"), 10.0, 10.0, true,
-        "Ten", Array(1, 2), Map("a" -> 123, "b" -> 345)))
-    assert(invalid.toSeq.toArray.take(schema.length - 1) ===
-      Array(null, null, null, null, null,
-        "Ten", Array(2), null))
-
-    assert(valid.toSeq.toArray.last === null)
-    assert(invalid.toSeq.toArray.last.toString.contains(
-      <integer_value int="Ten">Ten</integer_value>.toString))
-  }
-
   test("empty string to null and back") {
     val fruit = spark.read
-      .option("rowTag", "row")
+      .schema(buildSchema(field("color")))
+      .option("startTag", "<root>")
+      .option("endTag", "</root>")
+      .option("rootXQuery", "./root/row")
+      .option("column.xpath.color", "./color")
       .option("nullValue", "")
       .xml(resDir + "null-empty-string.xml")
     assert(fruit.head().getAs[String]("color") === null)
   }
 
-  test("test all string data type infer strategy") {
-    val text = spark.read
-      .option("rowTag", "ROW")
-      .option("inferSchema", "false")
-      .xml(resDir + "textColumn.xml")
-    assert(text.head().getAs[String]("col1") === "00010")
-
-  }
-
-  test("test default data type infer strategy") {
-    val default = spark.read
-      .option("rowTag", "ROW")
-      .option("inferSchema", "true")
-      .xml(resDir + "textColumn.xml")
-    assert(default.head().getAs[Int]("col1") === 10)
-  }
-
+// processing instruction should be omitted by the xml processor
   test("test XML with processing instruction") {
     val processingDF = spark.read
-      .option("rowTag", "foo")
-      .option("inferSchema", "true")
+      .schema(buildSchema(field("bar")))
+      .option("rootXQuery", "./foo")
+      .option("column.xpath.bar", "./bar")
+      .option("startTag", "<foo>")
+      .option("endTag", "</foo>")
       .xml(resDir + "processing.xml")
+
+    // "lorem ipsum" is expected
     assert(processingDF.count() === 1)
   }
-
+/*
   test("test mixed text and element children") {
     val mixedDF = spark.read
       .option("rowTag", "root")

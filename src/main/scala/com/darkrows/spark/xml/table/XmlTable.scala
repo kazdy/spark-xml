@@ -12,6 +12,7 @@ class XmlTable  (
                 val xmlColumns: Array[XmlColumn],
                 val requestedSchema: StructType
               ) extends Serializable {
+  @transient val compiledXPath = XPathHelper.compile("./query")
 
   def compileRequestedXPaths(): Array[XmlCompiledColumn] = {
 

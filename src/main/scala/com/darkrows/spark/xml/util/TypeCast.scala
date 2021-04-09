@@ -50,6 +50,8 @@ private[xml] object TypeCast {
     if (datum == options.nullValue &&
       nullable) {
       null
+    } else if (datum == "" && nullable){
+      null
     } else {
       castType match {
         case _: ByteType => datum.toByte

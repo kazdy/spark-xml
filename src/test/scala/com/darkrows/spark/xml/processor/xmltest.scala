@@ -34,8 +34,23 @@ object xmltest extends App {
     }
 
     // books.show
+    val carsSchema = StructType(
+      StructField("year", StringType) ::
+        StructField("comment", StringType) :: Nil
+    )
 
+    val cars = {
+      spark.read
+        .format("xml")
+        .schema(carsSchema)
+        .option("rootXQuery", "./ROW")
+        .option("column.xpath.year", "./year")
+        .option("column.xpath.comment", "./comment")
+        .load("cars.xml")
+    }
 
+    cars.show
+/*
   val schemaHouses = StructType(
     StructField("id", StringType) ::
       StructField("id1", StringType) ::
@@ -65,4 +80,6 @@ object xmltest extends App {
   println(houses.count())
   val endTime = System.currentTimeMillis()
   println(s"Execution time: ${endTime - startTime} milisectonds")
+
+ */
 }
