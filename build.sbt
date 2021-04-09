@@ -10,7 +10,7 @@ crossScalaVersions := Seq("2.11.12", "2.12.10")
 
 scalacOptions := Seq("-unchecked", "-deprecation")
 
-val sparkVersion = sys.props.get("spark.testVersion").getOrElse("2.3.4")
+val sparkVersion = sys.props.get("spark.testVersion").getOrElse("2.4.3")
 
 // To avoid packaging it, it's Provided below
 autoScalaLibrary := false
@@ -28,10 +28,12 @@ libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-library" % scalaVersion.value % Provided
 )
 
+// dependencyOverrides += "com.google.guava" % "guava" % "11.0.2"
+
 publishMavenStyle := true
 
 pomExtra :=
-  <url>https://github.com/databricks/spark-xml</url>
+  <url>https://github.com/kazdy/spark-xml</url>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
@@ -40,7 +42,7 @@ pomExtra :=
     </license>
   </licenses>
   <scm>
-    <url>git@github.com:databricks/spark-xml.git</url>
+    <url>git@github.com:kazdy/spark-xml.git</url>
     <connection>scm:git:git@github.com:databricks/spark-xml.git</connection>
   </scm>
   <developers>
@@ -60,14 +62,12 @@ fork := true
 // Prints JUnit tests in output
 testOptions in Test := Seq(Tests.Argument(TestFrameworks.JUnit, "-v"))
 
-mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.11.0")
+mimaPreviousArtifacts := Set("com.darkrows" %% "spark-xml" % "0.0.0")
 
 mimaBinaryIssueFilters ++= {
   import com.typesafe.tools.mima.core.ProblemFilters.exclude
   import com.typesafe.tools.mima.core.DirectMissingMethodProblem
   Seq(
-    exclude[DirectMissingMethodProblem](
-      "com.darkrows.spark.xml.parsers.StaxXmlParser.convertField"),
     exclude[DirectMissingMethodProblem](
       "com.darkrows.spark.xml.util.TypeCast.parseXmlTimestamp"),
     exclude[DirectMissingMethodProblem](
