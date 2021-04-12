@@ -8,11 +8,12 @@ object xmltest extends App {
   val spark = SparkSession
     .builder()
     .master("local[*]")
+    .config("spark.ui.enabled", true)
     .appName("xmltest")
     .getOrCreate()
 
   spark.sparkContext.setLogLevel("ALL")
-
+/*
   val schema = StructType(
       StructField("id", StringType) ::
       StructField("title", StringType) ::
@@ -50,7 +51,7 @@ object xmltest extends App {
     }
 
     cars.show
-/*
+*/
   val schemaHouses = StructType(
     StructField("id", StringType) ::
       StructField("id1", StringType) ::
@@ -73,13 +74,13 @@ object xmltest extends App {
       .option("column.xpath.id5", "./@ENDDATE")
       .option("startTag", "<Houses>")
       .option("endTag", "</Houses>")
-      .load("/home/dan/IdeaProjects/spark-xml/src/test/resources/fias_house.very_large.xml")
+      .load("/home/dan/IdeaProjects/spark-xml/src/test/resources/fias_house.xml")
 
   }
+
+
   val startTime = System.currentTimeMillis()
   println(houses.count())
   val endTime = System.currentTimeMillis()
   println(s"Execution time: ${endTime - startTime} milisectonds")
-
- */
 }

@@ -25,7 +25,6 @@ final class XmlFileSuite extends AnyFunSuite with BeforeAndAfterAll {
 
   private val booksFile = "src/test/resources/books.xml"
   private val booksUnicodeInTagNameFile = "src/test/resources/books-unicode-in-tag-name.xml"
-  private val booksFileTag = "book"
   private val booksStartTag = "<book>"
   private val booksEndTag = "</book>"
   private val booksUnicodeStartTag = "<\u66F8>" // scalastyle:ignore

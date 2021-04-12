@@ -367,7 +367,8 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     assert(spark.sql("SELECT year FROM carsTable2").collect().length === 3)
   }
-/*
+
+  // TODO: Add exception handling, make the e.msg more meaningful
   test("DSL test for parsing a malformed XML file") {
     val exception = intercept[SparkException] {
       val results = spark.read
@@ -383,8 +384,6 @@ final class XmlSuite extends AnyFunSuite with BeforeAndAfterAll {
       "org.xml.sax.SAXParseException; lineNumber: 6; columnNumber: 7; The element type " +
         "\"model\" must be terminated by the matching end-tag \"</model>\""))
   }
-*/
-
 
   test("DSL test with empty file and known schema") {
 
