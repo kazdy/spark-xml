@@ -1,8 +1,8 @@
 name := "spark-xml"
 
-version := "0.12.0"
+version := "0.0.1"
 
-organization := "com.databricks"
+organization := "com.darkrows"
 
 scalaVersion := "2.11.12"
 
@@ -10,7 +10,7 @@ crossScalaVersions := Seq("2.11.12", "2.12.10")
 
 scalacOptions := Seq("-unchecked", "-deprecation")
 
-val sparkVersion = sys.props.get("spark.testVersion").getOrElse("2.4.7")
+val sparkVersion = sys.props.get("spark.testVersion").getOrElse("2.4.3")
 
 // To avoid packaging it, it's Provided below
 autoScalaLibrary := false
@@ -19,6 +19,7 @@ libraryDependencies ++= Seq(
   "commons-io" % "commons-io" % "2.8.0",
   "org.glassfish.jaxb" % "txw2" % "2.3.3",
   "org.apache.ws.xmlschema" % "xmlschema-core" % "2.2.5",
+  "net.sf.saxon" % "Saxon-HE" % "10.3",
   "org.slf4j" % "slf4j-api" % "1.7.25" % Provided,
   "org.scalatest" %% "scalatest" % "3.2.3" % Test,
   "com.novocode" % "junit-interface" % "0.11" % Test,
@@ -27,10 +28,12 @@ libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-library" % scalaVersion.value % Provided
 )
 
+// dependencyOverrides += "com.google.guava" % "guava" % "11.0.2"
+
 publishMavenStyle := true
 
 pomExtra :=
-  <url>https://github.com/databricks/spark-xml</url>
+  <url>https://github.com/kazdy/spark-xml</url>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
@@ -39,34 +42,15 @@ pomExtra :=
     </license>
   </licenses>
   <scm>
-    <url>git@github.com:databricks/spark-xml.git</url>
+    <url>git@github.com:kazdy/spark-xml.git</url>
     <connection>scm:git:git@github.com:databricks/spark-xml.git</connection>
   </scm>
   <developers>
     <developer>
-      <id>hyukjinkwon</id>
-      <name>Hyukjin Kwon</name>
-    </developer>
-    <developer>
-      <id>srowen</id>
-      <name>Sean Owen</name>
+      <id>kazdy</id>
+      <name>Daniel Kazmirski</name>
     </developer>
   </developers>
-
-publishTo := {
-  val nexus = "https://oss.sonatype.org/"
-  if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
-  else Some("releases" at nexus + "service/local/staging/deploy/maven2")
-}
-
-credentials += Credentials(
-  "Sonatype Nexus Repository Manager",
-  "oss.sonatype.org",
-  sys.env.getOrElse("USERNAME", ""),
-  sys.env.getOrElse("PASSWORD", ""))
-
-resolvers +=
-  "GCS Maven Central mirror" at "https://maven-central.storage-download.googleapis.com/maven2/"
 
 parallelExecution in Test := false
 
@@ -78,31 +62,29 @@ fork := true
 // Prints JUnit tests in output
 testOptions in Test := Seq(Tests.Argument(TestFrameworks.JUnit, "-v"))
 
-mimaPreviousArtifacts := Set("com.databricks" %% "spark-xml" % "0.11.0")
+mimaPreviousArtifacts := Set("com.darkrows" %% "spark-xml" % "0.0.0")
 
 mimaBinaryIssueFilters ++= {
   import com.typesafe.tools.mima.core.ProblemFilters.exclude
   import com.typesafe.tools.mima.core.DirectMissingMethodProblem
   Seq(
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.parsers.StaxXmlParser.convertField"),
+      "com.darkrows.spark.xml.util.TypeCast.parseXmlTimestamp"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.parseXmlTimestamp"),
+      "com.darkrows.spark.xml.util.TypeCast.supportedXmlTimestampFormatters"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.supportedXmlTimestampFormatters"),
+    "com.darkrows.spark.xml.util.TypeCast.parseXmlDate"),
     exclude[DirectMissingMethodProblem](
-    "com.databricks.spark.xml.util.TypeCast.parseXmlDate"),
+      "com.darkrows.spark.xml.util.TypeCast.supportedXmlDateFormatters"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.supportedXmlDateFormatters"),
+      "com.darkrows.spark.xml.util.TypeCast.supportedXmlDateFormatters"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.supportedXmlDateFormatters"),
+      "com.darkrows.spark.xml.util.TypeCast.parseXmlDate"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.parseXmlDate"),
+      "com.darkrows.spark.xml.util.TypeCast.supportedXmlTimestampFormatters"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.supportedXmlTimestampFormatters"),
+      "com.darkrows.spark.xml.util.TypeCast.parseXmlTimestamp"),
     exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.parseXmlTimestamp"),
-    exclude[DirectMissingMethodProblem](
-      "com.databricks.spark.xml.util.TypeCast.isTimestamp")
+      "com.darkrows.spark.xml.util.TypeCast.isTimestamp")
   )
 }
